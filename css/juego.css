@@ -1,0 +1,7 @@
+/* Estilos de la página provisoria de cada juego */
+.back { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--felt-light); color: var(--ivory); text-decoration: none; font-weight: 600; }
+.back:hover { color: #fff; }
+.juego-main { display: flex; flex-direction: column; gap: 16px; }
+.modo { margin: 0; color: var(--gold); font-weight: 600; }
+.mesa { min-height: 320px; border-radius: 20px; border: 2px dashed var(--line); background: var(--felt-dark); display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--muted); }
+.reglas { margin-top: 24px; display: flex; flex-direction: column; gap: 8px; }

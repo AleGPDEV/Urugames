@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mesa de Naipes · Urugames</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/lobby.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-card">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>
+        </div>
+        <div>
+          <span class="brand-name">Mesa de Naipes</span>
+          <span class="brand-sub">Juegos de baraja española</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a href="#perfil" class="player"><span class="avatar">J</span><span>Jugador</span></a>
+        <button class="icon-btn" aria-label="Configuración">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="stack">
+      <h1>¿Cómo querés jugar?</h1>
+      <div class="seg" role="group" aria-label="Modo de juego">
+        <button data-mode="solo" aria-pressed="true">Individual</button>
+        <button data-mode="multi" aria-pressed="false">Multijugador</button>
+      </div>
+
+      <div id="panel-solo" class="panel solo">
+        <div class="panel-text">
+          <span class="panel-title">Contra la máquina</span>
+          <span class="muted">Elegí la dificultad y después el juego.</span>
+        </div>
+        <div class="pills" role="group" aria-label="Dificultad">
+          <button data-level="facil" aria-pressed="false">Fácil</button>
+          <button data-level="normal" aria-pressed="true">Normal</button>
+          <button data-level="dificil" aria-pressed="false">Difícil</button>
+        </div>
+      </div>
+
+      <div id="panel-multi" class="multi" hidden>
+        <a href="#partida-rapida" class="multi-card gold">
+          <span class="panel-title">Partida rápida</span>
+          <span>Te sentamos en la primera mesa libre.</span>
+        </a>
+        <a href="#crear-sala" class="multi-card">
+          <span class="panel-title">Crear sala privada</span>
+          <span class="muted">Invitá a tus amigos con un código.</span>
+        </a>
+        <form class="multi-card" id="join-form">
+          <label for="codigo-sala" class="panel-title">Unirse con código</label>
+          <div class="join-row">
+            <input id="codigo-sala" placeholder="Ej: K7Q2" maxlength="8" autocomplete="off">
+            <button type="submit">Entrar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="stack">
+      <div class="games-head">
+        <h2>Elegí tu juego</h2>
+        <span class="muted" id="mode-hint">Modo individual · contra la máquina</span>
+      </div>
+      <div class="games" id="games"></div>
+    </section>
+
+    <footer class="foot">
+      <a href="#como-jugar">Cómo jugar</a>
+      <a href="#ranking">Ranking</a>
+      <a href="#ajustes">Ajustes</a>
+    </footer>
+  </div>
+  <script src="js/juegos.js"></script>
+  <script src="js/lobby.js"></script>
+</body>
+</html>
