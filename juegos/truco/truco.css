@@ -1,0 +1,247 @@
+/* Club de barrio: mesa de fórmica celeste con canto de aluminio, puntos anotados con tiza en el pizarrón.
+   Lo memorable es el pizarrón; todo lo demás queda callado. Texto alineado a la izquierda, mesa centrada. */
+:root{
+  color-scheme:dark;
+  --pared:#1d3350; --pared2:#16283f; --tinta:#132233;
+  --mesa:#6fadd6; --mesa2:#5b9cc8; --canto1:#dfe4e8; --canto2:#8e99a2;
+  --pizarra:#22332e; --marco:#7b5233; --tiza:#ecebe3; --tiza2:rgba(236,235,227,.62); --tiza3:rgba(236,235,227,.16);
+  --sol:#f3c233; --grito:#d8432f; --texto:#e8eef4; --tenue:#a9bccd;
+  --naipe:#fbfaf6;
+  --f-ui:'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --f-tiza:'Gochi Hand', 'Comic Neue', 'Segoe Print', cursive;
+  --tw:clamp(42px,13vw,64px);
+}
+*{box-sizing:border-box}
+body{background:var(--pared);color:var(--texto);font-family:var(--f-ui);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 36px}
+.app{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 18px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-ui);font-weight:800;font-stretch:75%;font-variation-settings:"wdth" 75;font-size:clamp(2.6rem,9vw,4.2rem);line-height:.85;letter-spacing:-.02em;margin:0;color:var(--sol)}
+.sub{font-size:1.02rem;color:var(--tenue)}
+
+/* pizarrón: puntos y crónica */
+.pizarra{background:radial-gradient(120% 90% at 30% 20%,rgba(255,255,255,.06),transparent 60%),var(--pizarra);
+  border:9px solid var(--marco);border-radius:6px;box-shadow:inset 0 0 30px rgba(0,0,0,.45),0 10px 24px rgba(0,0,0,.35);
+  padding:14px 16px 16px;display:flex;flex-direction:column;gap:14px;color:var(--tiza);min-width:0}
+.pizarra h2{font-family:var(--f-tiza);font-weight:400;font-size:1.5rem;line-height:1;margin:0;color:var(--tiza)}
+.score{display:grid;gap:10px;min-width:0}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:2px 10px}
+.sname{font-family:var(--f-tiza);font-size:1.35rem;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spts{font-family:var(--f-tiza);font-size:2.1rem;line-height:.9;font-variant-numeric:tabular-nums;text-align:right;grid-row:span 2;align-self:center}
+.stage{font-size:1rem;color:var(--tiza2)}
+.sname{grid-column:1;grid-row:1}
+svg.sticks{grid-column:1;grid-row:2}
+.spts{grid-column:2;grid-row:1/3}
+svg.sticks{display:block;height:auto;max-width:100%;grid-column:1}
+.stick{stroke:var(--tiza);stroke-width:2.4;stroke-linecap:round;opacity:.92}
+.head{display:none}
+.ghost{stroke:var(--tiza3);stroke-width:1.2}
+.divl{stroke:var(--sol);stroke-width:1.6;stroke-dasharray:1 4;stroke-linecap:round}
+.chalkline{border:none;border-top:1.5px solid var(--tiza3);margin:0}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-family:var(--f-tiza);font-size:1.12rem;line-height:1.2}
+.log li:not(:first-child){color:var(--tiza2)}
+.log b{font-weight:400;margin-right:6px}
+.w-me{color:var(--sol)}.w-op{color:#ffb2a3}
+details summary{cursor:pointer;font-family:var(--f-tiza);font-size:1.25rem;color:var(--tiza);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:" +"}
+details[open] summary::after{content:" −"}
+details summary:focus-visible{outline:2px dashed var(--sol);outline-offset:3px}
+.rules{font-family:var(--f-ui);font-size:.92rem;line-height:1.5;color:var(--tiza);display:flex;flex-direction:column;gap:8px;margin-top:8px;max-width:62ch}
+.rules p{margin:0}
+.rules .now{border-left:3px solid var(--sol);padding:2px 0 2px 10px}
+
+/* juego */
+.gamehead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--tenue)}
+.gamehead b{color:var(--texto);letter-spacing:.08em}
+.gamegrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.tablecol{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:860px){
+  .gamegrid{grid-template-columns:minmax(0,1fr)}
+  .pizarra{order:-1}
+  .pizarra .score{gap:8px}
+  .pizarra .log li:nth-child(n+5){display:none}
+}
+.mesa{border:9px solid transparent;border-radius:26px;
+  background:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,.18) 0 1.2px,transparent 1.6px) 0 0/23px 19px padding-box,
+    radial-gradient(circle at 70% 60%,rgba(19,34,51,.12) 0 1.2px,transparent 1.6px) 0 0/31px 27px padding-box,
+    linear-gradient(var(--mesa),var(--mesa2)) padding-box,
+    repeating-linear-gradient(90deg,var(--canto1) 0 3px,var(--canto2) 3px 5px,var(--canto1) 5px 7px) border-box;
+  box-shadow:0 14px 30px rgba(0,0,0,.4);padding:14px 10px;display:flex;flex-direction:column;gap:16px;color:var(--tinta)}
+.seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px}
+.who{font-size:.95rem;font-weight:600;color:var(--tinta);display:flex;align-items:center;gap:8px}
+.chip{background:var(--tinta);color:var(--sol);border-radius:999px;padding:0 9px;font-size:.82rem;font-weight:700}
+.hand{display:flex;gap:8px;justify-content:center;flex-wrap:nowrap}
+.cpu .hand{min-height:calc(clamp(40px,12vw,56px)*1.54)}
+.cpu .hand .card{--cw:clamp(40px,12vw,56px)}
+.you .hand{min-height:calc(clamp(60px,20vw,92px)*1.54 + 8px);padding-top:8px}
+.info{display:flex;gap:6px 16px;flex-wrap:wrap;justify-content:center;font-size:.92rem;color:var(--tinta)}
+.info b{font-weight:800}
+
+.card{--cw:clamp(60px,20vw,92px);width:var(--cw);max-width:100%;aspect-ratio:208/319;position:relative;flex:none;display:block;padding:0;border:none;
+  background-color:var(--naipe);background-image:url(../../img/baraja.jpg);background-size:1200% 500%;background-repeat:no-repeat;border-radius:calc(var(--cw)*.07);
+  box-shadow:0 1px 0 rgba(19,34,51,.35),0 6px 12px rgba(19,34,51,.28)}
+.badge{position:absolute;top:-10px;right:-6px;font-family:var(--f-ui);font-size:.74rem;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--sol);color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.badge.mata{background:var(--tinta);color:var(--naipe)}
+button.card{cursor:pointer;transition:transform .14s ease,box-shadow .14s ease}
+button.card:hover,button.card:focus-visible{transform:translateY(-10px);box-shadow:0 1px 0 rgba(19,34,51,.35),0 14px 20px rgba(19,34,51,.35)}
+button.card:focus-visible{outline:3px solid var(--sol);outline-offset:3px}
+.you .hand.idle .card{filter:saturate(.8)}
+.card.back{background-position:9.0909% 100%}
+
+.mid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center}
+.pile{display:flex;flex-direction:column;align-items:center;gap:6px;padding-inline:4px}
+.pile .stack{position:relative;width:calc(var(--tw) + 16px);height:calc(var(--tw)*1.54 + 12px)}
+.pile .stack .card{--cw:var(--tw);position:absolute}
+.pile .stack .card.d{left:0;top:0;transform:rotate(-6deg)}
+.pile .stack .card.m{left:14px;top:8px;z-index:2;box-shadow:0 6px 14px rgba(19,34,51,.4)}
+.lbl{font-size:.85rem;font-weight:600;color:var(--tinta)}
+.bazas{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bazas.n4{--tw:clamp(38px,11vw,56px)}
+.bazas.n6{--tw:clamp(32px,8.6vw,50px)}
+.bz{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.plays{display:flex;flex-wrap:wrap;gap:6px}
+figure.play{margin:0;display:flex;flex-direction:column;align-items:center;gap:2px}
+figure.play figcaption{font-size:.74rem;font-weight:600;color:rgba(19,34,51,.7);max-width:calc(var(--tw) + 14px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+figure.play.mine figcaption{color:var(--tinta);font-weight:800}
+.others{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 12px}
+.opp{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 10px 8px;border-radius:14px}
+.opp.turn{background:rgba(243,194,51,.3);box-shadow:inset 0 0 0 2px var(--sol)}
+.tag{font-size:.76rem;font-weight:600;padding:0 7px;border-radius:999px;background:rgba(19,34,51,.12);color:var(--tinta)}
+.opp.mate .tag{background:var(--tinta);color:var(--sol)}
+.ring .opp.out{opacity:.45;filter:saturate(.6)}
+.mateinfo{font-size:.8rem;font-weight:600;color:var(--tinta)}
+.seat.n4 .hand,.seat.n6 .hand{gap:4px;min-height:0}
+.seat.n4 .hand .card,.seat.n6 .hand .card{--cw:clamp(26px,7vw,38px)}
+.opp .bubble{right:-8px;top:-16px;max-width:none;white-space:nowrap;font-size:1.05rem;padding:6px 12px}
+.seat.n4 .others,.seat.n6 .others{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(132px,100%),1fr));width:100%}
+.seat.n4 .who,.seat.n6 .who{flex-wrap:wrap;justify-content:center;text-align:center;gap:4px 6px;font-size:.88rem}
+.bz .card{--cw:var(--tw)}
+.slot{width:var(--tw);aspect-ratio:208/319;border:2px dashed rgba(19,34,51,.22);border-radius:7px}
+.res{font-size:.85rem;font-weight:600;color:rgba(19,34,51,.7);min-height:1.3em}
+.res.w{color:var(--tinta);font-weight:800}
+.card.lose{filter:saturate(.3) brightness(.86)}
+.card.win{outline:3px solid var(--sol);outline-offset:2px}
+.card.fresh{animation:drop .28s ease-out}
+@keyframes drop{from{transform:translateY(-16px) rotate(-3deg);opacity:.2}to{transform:none;opacity:1}}
+
+.bubble{position:absolute;z-index:5;right:2px;background:var(--tinta);color:var(--sol);font-family:var(--f-ui);font-weight:800;font-stretch:80%;font-variation-settings:"wdth" 80;
+  font-size:1.35rem;line-height:1.05;padding:8px 14px;border-radius:16px;box-shadow:0 6px 16px rgba(0,0,0,.35);animation:pop .22s ease-out;max-width:62%}
+.cpu .bubble{top:-6px;border-bottom-left-radius:4px}
+.you .bubble{bottom:-6px;border-top-left-radius:4px}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+
+.bar{background:var(--pared2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;border:1px solid rgba(169,188,205,.18)}
+.status{font-size:1.1rem;line-height:1.35}
+.status b{color:var(--sol)}
+.status small{display:block;color:var(--tenue);font-size:.93rem;max-width:68ch}
+.status.big{font-weight:800;font-stretch:80%;font-variation-settings:"wdth" 80;font-size:1.9rem;line-height:1.05;color:var(--sol)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font-family:var(--f-ui);font-weight:700;font-size:1rem;padding:10px 16px;border-radius:12px;border:none;cursor:pointer;background:var(--texto);color:var(--tinta);min-height:44px}
+.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:3px solid var(--sol);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.call{background:var(--grito);color:#fff}
+.btn.yes{background:var(--sol);color:var(--tinta)}
+.btn.ghost{background:transparent;color:var(--texto);box-shadow:inset 0 0 0 1.5px rgba(232,238,244,.35)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:.92rem}
+.sep{width:1px;align-self:stretch;background:rgba(232,238,244,.2);margin-inline:2px}
+.err{color:#ffb2a3;font-size:.93rem;min-height:1.2em}
+
+/* inicio */
+.lobby{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+@media (max-width:760px){.lobby{grid-template-columns:minmax(0,1fr)}}
+.tile{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tile h2{font-weight:800;font-stretch:80%;font-variation-settings:"wdth" 80;font-size:1.8rem;line-height:1;margin:0}
+.tile p{margin:0;max-width:58ch}
+.tile .note{color:inherit;opacity:.78;font-size:.95rem}
+.mesa.tile{padding:22px}
+.mesa.tile h2{color:var(--tinta)}
+.pizarra.tile h2{font-family:var(--f-tiza);font-weight:400;font-size:2rem;color:var(--tiza)}
+.pizarra.tile h2[style]{font-size:1.45rem!important}
+.pizarra .btn.ghost{color:var(--tiza);box-shadow:inset 0 0 0 1.5px var(--tiza3)}
+.mesa .btn.ghost{color:var(--tinta);box-shadow:inset 0 0 0 1.5px rgba(19,34,51,.4)}
+.fan{display:flex;justify-content:center;padding-block:8px 4px}
+.fan .card{--cw:clamp(56px,15vw,78px)}
+.fan .card:nth-child(1){transform:rotate(-12deg) translateY(8px)}
+.fan .card:nth-child(2){margin-inline:-16px;z-index:1}
+.fan .card:nth-child(3){transform:rotate(12deg) translateY(8px)}
+.tables{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tables li{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1.5px dashed var(--tiza3);padding:6px 0}
+.tables .code{font-family:var(--f-tiza);font-size:1.5rem;letter-spacing:.06em;color:var(--sol)}
+.tables .meta{font-family:var(--f-tiza);font-size:1.12rem;color:var(--tiza2);min-width:0;overflow:hidden;text-overflow:ellipsis;flex:1}
+.empty{color:var(--tiza2)}
+.joinrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.joinrow input{font-family:var(--f-tiza);font-size:1.5rem;letter-spacing:.18em;text-transform:uppercase;width:7ch;padding:4px 10px;border-radius:8px;border:1.5px dashed var(--tiza2);background:transparent;color:var(--tiza)}
+.joinrow input:focus-visible{outline:3px solid var(--sol);outline-offset:1px}
+#waiting.tile{max-width:560px}
+.bigcode{font-family:var(--f-tiza);font-size:clamp(3rem,13vw,4.6rem);letter-spacing:.12em;color:var(--sol);line-height:1}
+
+/* ronda de truco: vos abajo, los demás alrededor en el orden en que se juega; la muestra al centro y cada carta jugada delante de su jugador */
+.ring{position:relative;width:100%;aspect-ratio:3/4;max-height:600px}
+@media (min-width:600px){.ring{aspect-ratio:4/3}}
+.ring .opp{position:absolute;transform:translate(-50%,-50%);max-width:34%;padding:4px 6px 6px;gap:4px}
+.ring .opp .hand{gap:0;min-height:0}
+.ring .opp .hand .card{--cw:clamp(26px,7.2vw,40px)}
+.ring .opp.attop{transform:translate(-50%,0)}
+.ring .opp.mate .hand .card{--cw:clamp(36px,10vw,50px)}
+.ring .opp.mate .hand .card+.card{margin-left:calc(var(--cw)*-.12)}
+.ring .opp .hand .card+.card{margin-left:calc(var(--cw)*-.3)}
+#mesaMain.n2 .ring .opp .hand .card{--cw:clamp(38px,11vw,56px)}
+#mesaMain.n2 .ring .opp .hand .card+.card{margin-left:4px}
+.ring .who{flex-wrap:wrap;justify-content:center;text-align:center;gap:3px 6px;font-size:.88rem}
+.ring .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px}
+.ring .center .card{--cw:clamp(40px,12vw,60px)}
+.ring .center .card.m{transform:rotate(-4deg);box-shadow:0 6px 14px rgba(19,34,51,.4)}
+.pc{position:absolute;transform:translate(-50%,-50%)}
+.pc .card{--cw:var(--tw)}
+#mesaMain.n6 .pc .card{--cw:clamp(34px,10vw,54px)}
+#mesaMain.n4 .pc .card{--cw:clamp(38px,11.5vw,58px)}
+.bazachips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:1.6em}
+.bchip{font-size:.84rem;font-weight:600;padding:2px 10px;border-radius:999px;background:rgba(19,34,51,.12);color:var(--tinta)}
+.bchip.w{background:var(--tinta);color:var(--sol)}
+.bchip.l{background:rgba(216,67,47,.85);color:#fff}
+.bchip.now{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(19,34,51,.35)}
+#seatP{width:100%}
+
+/* movimiento: reparto, carta que vuela desde el jugador, mazo que pasa al nuevo mano, baza ganada */
+.hand.dealing .card{animation:deal .42s cubic-bezier(.2,.8,.25,1) backwards;animation-delay:calc(var(--i,0) * 70ms)}
+@keyframes deal{from{transform:translateY(-120px) rotate(-14deg) scale(.55);opacity:0}to{transform:none;opacity:1}}
+.pc.fly{animation:fly .42s cubic-bezier(.2,.8,.2,1)}
+@keyframes fly{from{left:var(--fx);top:var(--fy);transform:translate(-50%,-50%) scale(.7) rotate(-14deg);opacity:.6}to{left:var(--tx);top:var(--ty);transform:translate(-50%,-50%);opacity:1}}
+.card.winpop{animation:winpop .5s ease-out .15s both}
+@keyframes winpop{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
+.pile2{position:absolute;transform:translate(-50%,-50%);width:calc(var(--pw) * 1.9);height:calc(var(--pw) * 1.3);--pw:clamp(28px,8vw,46px)}
+.pile2 .card{--cw:var(--pw);position:absolute}
+.pile2 .card.m{left:0;top:50%;transform:translateY(-50%) rotate(90deg);transform-origin:center}
+.pile2 .card.d{right:0;top:0;transform:rotate(4deg)}
+.pile2.move{animation:pmove .6s cubic-bezier(.3,.7,.2,1)}
+@keyframes pmove{from{left:var(--fx);top:var(--fy)}to{left:var(--tx);top:var(--ty)}}
+.pile2.fresh .card.m{animation:flipm .45s ease-out .35s both}
+@keyframes flipm{from{transform:translateY(-50%) rotate(90deg) rotateY(90deg)}to{transform:translateY(-50%) rotate(90deg)}}
+.ring .opp,.pc{transition:opacity .25s}
+
+button.pile2{border:none;background:none;padding:0;cursor:zoom-in;z-index:3}
+button.pile2:hover .card.m{box-shadow:0 0 0 3px var(--sol),0 6px 14px rgba(19,34,51,.4)}
+button.pile2:focus-visible{outline:3px solid var(--sol);outline-offset:6px;border-radius:8px}
+#zoom{position:fixed;inset:0;z-index:50;background:rgba(10,20,32,.72);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));animation:zfade .18s ease-out}
+#zoom .zbox{display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--texto);font-size:1.1rem}
+#zoom .zbox p{margin:0}
+#zoom .card.zc{--cw:min(62vw,240px);animation:zpop .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes zfade{from{opacity:0}to{opacity:1}}
+@keyframes zpop{from{transform:scale(.4) rotate(90deg)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* integración con Mesa de Naipes */
+.tile h2,.pizarra.tile h2{font-family:var(--f-ui)}
+.backrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.backrow .modo{margin:0;color:var(--tenue);font-weight:600}
+.aviso{margin:0;padding:10px 14px;border-radius:12px;background:var(--pared2);border:1px solid rgba(169,188,205,.25);color:var(--texto)}
+#lobby.lobby{grid-template-columns:minmax(0,640px);justify-content:center}
+[hidden]{display:none!important}
+/* juego.css trae una .mesa provisoria centrada; acá la mesa es la del truco */
+.mesa{min-height:0;justify-content:flex-start;align-items:stretch;text-align:left;color:var(--tinta)}
+.mesa.tile{align-items:stretch}

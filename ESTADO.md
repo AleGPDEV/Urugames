@@ -81,10 +81,42 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - **Usa la dificultad del menú**: Fácil juega casi al azar, Normal elige la jugada que más cartas le da y Difícil además cuida su montón según las cartas que ya salieron.
 - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
 
+### Truco uruguayo (`juegos/truco/`) · jugable
+- Archivos: `index.html`, `truco.css`, `truco.js` y los audios de los cantos en `snd/grave/` y `snd/aguda/`.
+- **Reglas:** truco uruguayo con muestra y piezas.
+  - Piezas: 2, 4, 5, caballo y sota del palo de la muestra. Si la muestra es pieza, el rey toma su lugar.
+  - Matas: 1 de espadas, 1 de bastos, 7 de espadas y 7 de oros.
+  - Pardas con las reglas habituales.
+- **Envido:** envido, real envido y falta envido. Se acumulan hasta envido-envido y real-real. No querido vale lo acumulado hasta el canto anterior.
+- **Flor:** vale 3 y anula el envido. Si los dos equipos tienen flor, se responde con *la mía flor* (se compara al final, 3 puntos), *con flor envido* (5) o *contra flor al resto*.
+- **Truco:** truco, retruco y vale cuatro. Solo sube el equipo que aceptó el último canto. "El envido va primero" como respuesta al truco en la primera baza. Se puede ir al mazo.
+- **Jugadores:** 2, 4 o 6, en equipos sentados alternados. En equipo, el envido y la flor cuentan el mejor de cada equipo. Los cantos los responde el rival que sigue en la ronda.
+- **Pico a pico (6 jugadores, opcional):** mientras los dos equipos están en malas, se alterna una mano redonda con una de picos. En la de picos se juegan tres picos uno contra uno, con el rival de enfrente. La falta envido vale 6 y la contra flor al resto 12.
+- **Partida:** a 30 o a 40 puntos, con malas y buenas.
+- **Mesa en ronda:**
+  - Vos abajo y los demás alrededor en el orden de juego.
+  - Cada carta jugada aparece delante de su jugador.
+  - El mazo con la muestra queda al lado del mano. Al tocarlo, la muestra se ve en grande.
+  - Se ven las cartas de los compañeros, nunca las de los rivales.
+- **Pizarrón** con los puntos en rayas de a cinco, la crónica de la mano y reglas rápidas.
+- **Animaciones:** reparto, carta que vuela a la mesa, mazo que pasa al nuevo mano y pulso en la carta ganadora. Respetan "reducir movimiento".
+- **Reparto automático:** la siguiente mano o pico arranca solo a los 3 segundos. También hay un botón "Repartir ya".
+- **Audios de todos los cantos:** grabaciones limpias de ruido. Tu equipo suena con voz grave y el rival con voz aguda. Hay un botón para silenciar.
+- **Sin ayudas en la mesa:** no se marcan piezas ni matas ni se muestra el envido.
+- **Configuración del lobby:**
+  - Toma `window.URUGAMES`. La dificultad cambia a la compu: en Fácil tira al azar a veces y canta peor; en Difícil arriesga menos.
+  - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+- **Resultado:** al terminar la partida emite el evento `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, pensado para el ranking.
+- **Probado** con 600 partidas simuladas (200 de 2, de 4 y de 6) sin trabarse.
+- **Pendiente:**
+  - El código de mesas en línea vino de una versión que guardaba las partidas en el servicio de Claude. Acá quedó sin usar (`createTable`, `joinTable`, `openTable`, `push`) y hay que reconectarlo al backend que se elija. En línea, las cartas de todos viajan en el mismo documento: para jugar con plata, el reparto y la validación tienen que pasar al servidor.
+  - Las señas entre compañeros no existen (se ven las cartas del compañero).
+  - Faltan audios para "Está bien" y "Son buenas".
+
 ## Qué falta
 
 ### Juegos
-Truco, Chinchón, Escoba, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
+Chinchón, Escoba, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
 
 ### Fichas diarias (sin empezar)
 Es el núcleo de la idea competitiva. Pensado así:
@@ -106,7 +138,8 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 
 1. Definir el backend: usuarios, fichas diarias y ranking.
 2. Armar un módulo común en `js/` para consumir una ficha al entrar y reportar el resultado al salir, y conectarlo primero con Memoria.
-3. Programar los juegos uno por uno, usando `img/baraja.jpg` y `window.URUGAMES`.
+3. Programar los juegos que faltan, usando `img/baraja.jpg` y `window.URUGAMES`.
+   Para el ranking, Truco ya emite `urugames:resultado`; conviene que los demás juegos hagan lo mismo.
 4. Multijugador en línea.
 
 ## Historial de cambios
@@ -120,3 +153,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Conga** completo (2 o 3 jugadores contra la compu, dificultad del menú), `img/baraja-recortada.webp` y Conga actualizada en `js/juegos.js` (2 o 3 jugadores) |
 | 29/10/2026 | Juego **Chancho va** completo (vs 3 rivales de la compu, con amagues y dificultad del menú), agregado a `js/juegos.js` y al README |
 | 29/10/2026 | Juego **Roba montón** completo (vs 1, 2 o 3 rivales de la compu, con animaciones y dificultad del menú), agregado a `js/juegos.js` y al README |
+| 29/10/2026 | Juego **Truco uruguayo** completo: 2, 4 o 6 jugadores, pico a pico, flor y contraflor, mesa en ronda, animaciones, reparto automático y audios de los cantos |
