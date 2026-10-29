@@ -71,6 +71,16 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - La compu se queda con el número que más tiene y pasa del que menos tiene, con un 12 % de error.
 - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
 
+### Roba montón (`juegos/robamonton/`) · jugable
+- Vos contra 1, 2 o 3 rivales de la compu, con el mazo de 48 cartas.
+- Se ponen 4 cartas en el centro y se reparten 4 a cada uno; cuando se vacían las manos se vuelve a repartir hasta agotar el mazo.
+- Al jugar una carta, en este orden: roba el montón del rival que tenga arriba el mismo número (el más grande si hay varios), levanta las cartas iguales del centro, la suma al propio montón o la deja en el centro. Gana el montón más grande.
+- Mesa en anillo con flechas del sentido del turno. El centro es grande y achica las cartas solo cuando se juntan muchas.
+- Animaciones con la Web Animations API: reparto desde el mazo, cartas que vuelan al centro o al montón y montones robados que viajan al que los roba. Respeta `prefers-reduced-motion`.
+- Cada carta de tu mano muestra antes de jugarla qué va a pasar (Robás, Levantás, Sumás, Al centro).
+- **Usa la dificultad del menú**: Fácil juega casi al azar, Normal elige la jugada que más cartas le da y Difícil además cuida su montón según las cartas que ya salieron.
+- Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+
 ## Qué falta
 
 ### Juegos
@@ -109,3 +119,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Culo sucio** completo (vs 1, 2 o 3 rivales de la compu) y agregado a `js/juegos.js` |
 | 29/10/2026 | Juego **Conga** completo (2 o 3 jugadores contra la compu, dificultad del menú), `img/baraja-recortada.webp` y Conga actualizada en `js/juegos.js` (2 o 3 jugadores) |
 | 29/10/2026 | Juego **Chancho va** completo (vs 3 rivales de la compu, con amagues y dificultad del menú), agregado a `js/juegos.js` y al README |
+| 29/10/2026 | Juego **Roba montón** completo (vs 1, 2 o 3 rivales de la compu, con animaciones y dificultad del menú), agregado a `js/juegos.js` y al README |

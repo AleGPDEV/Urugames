@@ -12,5 +12,6 @@ window.JUEGOS = [
   { id: 'sieteymedio', nombre: 'Siete y medio', palo: 'bastos',  jugadores: '2 o más',     desc: 'Acercate a siete y medio sin pasarte. Las figuras valen medio.' },
   { id: 'culosucio',   nombre: 'Culo sucio',    palo: 'oros',    jugadores: '2 a 4',       desc: 'Sacá cartas a ciegas, tirá pares y no te quedes con el 1 de oros.' },
   { id: 'chanchova',   nombre: 'Chancho va',    palo: 'copas',   jugadores: '4',           desc: 'Pasá cartas, juntá cuatro iguales y golpeá la mesa. Ojo con los amagues.' },
+  { id: 'robamonton',  nombre: 'Roba montón',   palo: 'copas',   jugadores: '2 a 4',       desc: 'Jugá una carta igual a la de arriba de un montón rival y robátelo entero.' },
   { id: 'memoria',     nombre: 'Memoria',       palo: 'oros',    jugadores: '1 a 4',       desc: 'Dá vuelta dos cartas y encontrá las parejas antes que tus rivales.' }
 ];
