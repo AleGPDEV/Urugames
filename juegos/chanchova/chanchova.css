@@ -1,0 +1,64 @@
+/* Chancho va: usa los colores de css/lobby.css. Clases con prefijo cv- para no chocar con otros estilos.
+   El rosa del chancho es propio de este juego. */
+.juego-main { --pig: #F07FA0; --pig-deep: #C94A73; --pig-shadow: #8D2F4F; max-width: 560px; width: 100%; margin: 0 auto; }
+.aviso { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--felt-light); color: var(--muted); }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ctrl button { font: inherit; font-weight: 600; min-height: 44px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 0 16px; }
+.ctrl button[aria-pressed="true"] { background: var(--felt-light); color: var(--ivory); }
+.ctrl button.primary { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.juego-main :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* Letras C-H-A-N-C-H-O */
+.cv-letters { display: flex; gap: 2px; }
+.cv-letters b { font-family: 'Alegreya SC', serif; font-size: 15px; width: 1.1em; text-align: center; color: var(--line); }
+.cv-letters b.on { color: var(--pig); }
+
+/* Rivales */
+.cv-rivals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cv-rival { min-width: 0; position: relative; border: 2px solid var(--line); border-radius: 12px; padding: 8px 6px 9px; background: var(--felt-dark); display: flex; flex-direction: column; align-items: center; gap: 6px; transition: border-color .2s, background .2s; }
+.cv-rival .cv-name { font-size: 14px; }
+.cv-rival .cv-letters b { font-size: 12px; width: .95em; }
+.cv-backs { display: flex; min-height: 30px; align-items: center; }
+.cv-backs .cv-card { width: 20px; height: 30px; margin-left: -8px; border-radius: 3px; }
+.cv-backs .cv-card:first-child { margin-left: 0; }
+.cv-four { font-family: 'Alegreya SC', serif; font-size: 15px; color: var(--pig); }
+.cv-rival.slammed, .cv-rival.shout { border-color: var(--pig); background: rgba(240,127,160,.12); }
+.cv-rival.shout { animation: cv-shake .32s ease-in-out 2; }
+.cv-rival.loser { border-color: var(--gold); background: rgba(217,164,65,.14); }
+.cv-badge { position: absolute; top: -10px; right: -4px; font-size: 11px; font-weight: 600; background: var(--pig); color: var(--ink); border-radius: 999px; padding: 2px 7px; }
+
+/* Mesa central con el botón para golpear */
+.cv-mesa { min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; border-radius: 20px; background: radial-gradient(ellipse at 50% 40%, var(--felt-light) 0%, var(--felt-dark) 80%); border: 8px solid #4A2C17; box-shadow: inset 0 0 30px rgba(0,0,0,.5); padding: 16px; }
+.cv-msg { font-weight: 600; min-height: 2.8em; max-width: 30ch; text-wrap: balance; line-height: 1.35; }
+.cv-msg strong { color: var(--gold); }
+.cv-order { display: flex; gap: 6px; min-height: 26px; flex-wrap: wrap; justify-content: center; }
+.cv-order span { font-size: 12px; font-weight: 600; background: var(--card); color: var(--ink); border-radius: 999px; padding: 4px 9px; animation: cv-pop .25s ease-out; }
+.cv-order em { font-style: normal; color: var(--pig-deep); margin-right: 3px; }
+.cv-slam { width: 140px; height: 140px; border-radius: 50%; border: 0; color: var(--ink); font-family: 'Alegreya SC', serif; font-weight: 700; font-size: 21px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: radial-gradient(circle at 35% 30%, #FFB3C8, var(--pig) 55%, var(--pig-deep)); box-shadow: 0 8px 0 var(--pig-shadow), 0 14px 24px rgba(0,0,0,.45);
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform .06s; }
+.cv-slam svg { width: 42px; height: 42px; }
+.cv-slam:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--pig-shadow), 0 6px 12px rgba(0,0,0,.45); }
+.cv-slam.hot { animation: cv-pulse .7s ease-in-out infinite; }
+.cv-slam[disabled] { filter: grayscale(.7) brightness(.7); cursor: default; }
+.cv-next { font: inherit; font-weight: 600; min-height: 44px; border: 0; border-radius: 999px; padding: 0 24px; background: var(--gold); color: var(--ink); }
+
+/* Tu mano. img/baraja.jpg: 12 columnas (1 a 12) x 5 filas (oros, copas, espadas, bastos, dorso) */
+.cv-card { background-color: var(--card); background-image: url(../../img/baraja.jpg); background-size: 1200% 500%; background-repeat: no-repeat; box-shadow: 0 2px 3px rgba(0,0,0,.35); }
+.cv-mine { display: flex; flex-direction: column; gap: 10px; }
+.cv-mine-top { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+.cv-hand { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 14px; }
+.cv-hand .cv-card { aspect-ratio: 170 / 261; width: 100%; max-width: 100%; border: 0; padding: 0; border-radius: 8px; box-shadow: 0 3px 0 #B9B3A6, 0 6px 12px rgba(0,0,0,.4); transition: transform .15s ease, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
+.cv-hand .cv-card.sel { transform: translateY(-14px); box-shadow: 0 0 0 3px var(--gold), 0 12px 18px rgba(0,0,0,.45); }
+.cv-hand .cv-card.llega { animation: cv-llega .45s ease-out; }
+.cv-hand .cv-card.four { box-shadow: 0 0 0 3px var(--pig), 0 6px 12px rgba(0,0,0,.4); }
+.cv-hand .cv-card[disabled] { cursor: default; }
+.cv-pass { font: inherit; font-weight: 600; min-height: 48px; border: 0; border-radius: 12px; background: var(--card); color: var(--ink); box-shadow: 0 3px 0 #B9B3A6; }
+.cv-pass[disabled] { opacity: .4; cursor: default; }
+
+@keyframes cv-pop { from { transform: scale(.6); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes cv-llega { from { transform: translateX(-40px) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cv-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes cv-shake { 0%, 100% { transform: none; } 25% { transform: translateX(-4px) rotate(-1.5deg); } 75% { transform: translateX(4px) rotate(1.5deg); } }
+@media (prefers-reduced-motion: reduce) { .juego-main * { animation: none !important; transition: none !important; } }
+@media (max-width: 360px) { .cv-slam { width: 120px; height: 120px; font-size: 18px; } }

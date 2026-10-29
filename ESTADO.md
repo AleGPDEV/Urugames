@@ -62,6 +62,15 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Diseño propio, distinto al del lobby (mesa de madera). Tiene su propio `conga.css` y no carga `css/lobby.css`.
 - No reporta resultado ni descuenta fichas: queda para cuando exista el módulo común.
 
+### Chancho va (`juegos/chanchova/`) · jugable
+- Vos contra 3 rivales de la compu (Tito, La Negra y Pocho), con los 1, 7, 10 y 12 de los cuatro palos: 16 cartas, cuatro por jugador.
+- Cada vuelta elegís una carta (tocándola) y todos pasan a la izquierda al mismo tiempo. Tocar dos veces la misma carta también la pasa.
+- Botón grande **¡CHANCHO!** para golpear la mesa. El último en golpear se lleva una letra; golpear sin cuatro iguales también cuesta letra. Quien completa CHANCHO pierde.
+- **Amagues**: después de algunas pasadas un rival grita "¡CHAN…!" y su recuadro se sacude igual que cuando golpea de verdad. Si era amague y tocás la mesa, te llevás letra. Los otros rivales también pueden caer. Se apaga con el botón "Amagues".
+- Usa la dificultad del menú: cambia qué tan rápido golpean los rivales, cuánto amagan y qué tan seguido caen en amagues ajenos (tabla `DIF` en `chanchova.js`).
+- La compu se queda con el número que más tiene y pasa del que menos tiene, con un 12 % de error.
+- Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+
 ## Qué falta
 
 ### Juegos
@@ -99,3 +108,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Este documento de estado |
 | 29/10/2026 | Juego **Culo sucio** completo (vs 1, 2 o 3 rivales de la compu) y agregado a `js/juegos.js` |
 | 29/10/2026 | Juego **Conga** completo (2 o 3 jugadores contra la compu, dificultad del menú), `img/baraja-recortada.webp` y Conga actualizada en `js/juegos.js` (2 o 3 jugadores) |
+| 29/10/2026 | Juego **Chancho va** completo (vs 3 rivales de la compu, con amagues y dificultad del menú), agregado a `js/juegos.js` y al README |
