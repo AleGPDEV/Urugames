@@ -1,6 +1,6 @@
 # Urugames · Mesa de Naipes
 
-Juegos de baraja española en el navegador: Truco, Chinchón, Conga, Escoba, Brisca, Tute, Mus y Siete y medio, en modo individual o multijugador.
+Juegos de baraja española en el navegador: Truco, Chinchón, Conga, Escoba, Brisca, Tute, Mus, Siete y medio y Memoria, en modo individual o multijugador.
 
 ## Estructura
 
@@ -12,6 +12,7 @@ js/juegos.js          Lista de juegos que muestra el menú
 js/lobby.js           Lógica del menú: modo, dificultad y enlaces
 js/juego-base.js      Lee cómo se entró al juego (window.URUGAMES)
 juegos/<id>/index.html  Un juego por carpeta
+img/baraja.jpg        Mazo completo (12 columnas x 5 filas: oros, copas, espadas, bastos, dorso)
 ```
 
 ## Cómo se conecta el menú con cada juego

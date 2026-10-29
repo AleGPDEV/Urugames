@@ -9,5 +9,6 @@ window.JUEGOS = [
   { id: 'brisca',      nombre: 'Brisca',        palo: 'oros',    jugadores: '2 a 4',       desc: 'Ganá bazas con el triunfo y llevate las cartas que más valen.' },
   { id: 'tute',        nombre: 'Tute',          palo: 'copas',   jugadores: '2 a 4',       desc: 'Cantá las veinte y las cuarenta, o cerrá con un tute.' },
   { id: 'mus',         nombre: 'Mus',           palo: 'espadas', jugadores: '4 (parejas)', desc: 'Grande, chica, pares y juego. Señas con tu compañero y órdago.' },
-  { id: 'sieteymedio', nombre: 'Siete y medio', palo: 'bastos',  jugadores: '2 o más',     desc: 'Acercate a siete y medio sin pasarte. Las figuras valen medio.' }
+  { id: 'sieteymedio', nombre: 'Siete y medio', palo: 'bastos',  jugadores: '2 o más',     desc: 'Acercate a siete y medio sin pasarte. Las figuras valen medio.' },
+  { id: 'memoria',     nombre: 'Memoria',       palo: 'oros',    jugadores: '1 a 4',       desc: 'Dá vuelta dos cartas y encontrá las parejas antes que tus rivales.' }
 ];
