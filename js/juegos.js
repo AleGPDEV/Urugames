@@ -10,5 +10,6 @@ window.JUEGOS = [
   { id: 'tute',        nombre: 'Tute',          palo: 'copas',   jugadores: '2 a 4',       desc: 'Cantá las veinte y las cuarenta, o cerrá con un tute.' },
   { id: 'mus',         nombre: 'Mus',           palo: 'espadas', jugadores: '4 (parejas)', desc: 'Grande, chica, pares y juego. Señas con tu compañero y órdago.' },
   { id: 'sieteymedio', nombre: 'Siete y medio', palo: 'bastos',  jugadores: '2 o más',     desc: 'Acercate a siete y medio sin pasarte. Las figuras valen medio.' },
+  { id: 'culosucio',   nombre: 'Culo sucio',    palo: 'oros',    jugadores: '2 a 4',       desc: 'Sacá cartas a ciegas, tirá pares y no te quedes con el 1 de oros.' },
   { id: 'memoria',     nombre: 'Memoria',       palo: 'oros',    jugadores: '1 a 4',       desc: 'Dá vuelta dos cartas y encontrá las parejas antes que tus rivales.' }
 ];

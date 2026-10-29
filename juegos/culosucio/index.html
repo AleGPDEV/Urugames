@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mesa de Naipes</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="../../css/lobby.css">
+  <link rel="stylesheet" href="../../css/juego.css">
+  <link rel="stylesheet" href="culosucio.css">
+</head>
+<body data-juego="culosucio">
+  <div class="wrap">
+    <header class="top">
+      <a href="../../index.html" class="back">← Volver al menú</a>
+    </header>
+    <main class="juego-main">
+      <h1 id="nombre"></h1>
+      <p class="modo" id="modo"></p>
+      <p class="aviso" id="aviso" hidden>El multijugador en línea todavía no está disponible: por ahora jugás contra la compu.</p>
+
+      <div class="ctrl">
+        <select id="nr" aria-label="Cantidad de rivales">
+          <option value="1">1 rival</option>
+          <option value="2">2 rivales</option>
+          <option value="3" selected>3 rivales</option>
+        </select>
+        <select id="deck" aria-label="Mazo">
+          <option value="40" selected>40 cartas</option>
+          <option value="48">48 cartas</option>
+        </select>
+        <button class="primary" id="newg">Repartir</button>
+      </div>
+
+      <div class="cs-mesa" id="table">
+        <div class="cs-oval"></div>
+        <svg class="cs-ring" id="ring" aria-hidden="true"></svg>
+        <div class="cs-center">
+          <div class="cs-row">
+            <div class="cs-mini"><div class="cs-stack" id="pile"></div><span id="pairs">0 pares</span></div>
+            <div class="cs-mini"><div id="culo"></div><span>Culo sucio</span></div>
+          </div>
+          <div class="cs-flow" id="flow"></div>
+        </div>
+        <div id="seats"></div>
+      </div>
+
+      <div class="cs-msg" id="msg" aria-live="polite"></div>
+      <section class="cs-panel" id="pick" hidden></section>
+      <section class="cs-panel cs-mine" id="me"></section>
+
+      <section id="reglas" class="reglas">
+        <h2>Reglas</h2>
+        <p>Se juega con la baraja española de 40 cartas (o 48, con ochos y nueves). El <b>1 de oros</b> es el culo sucio: no hace par con nada. Para que los otros ases queden parejos, antes de repartir se saca uno de ellos.</p>
+        <p>Se reparten todas las cartas y cada jugador tira los pares que tenga: dos cartas del mismo número, sin importar el palo.</p>
+        <p>La ronda gira como marcan las flechas de la mesa. En tu turno sacás una carta a ciegas del jugador siguiente, y si te forma par la tirás.</p>
+        <p>El que se queda sin cartas se salva. El último que queda con el 1 de oros en la mano es el culo sucio.</p>
+      </section>
+    </main>
+  </div>
+  <script src="../../js/juegos.js"></script>
+  <script src="../../js/juego-base.js"></script>
+  <script src="culosucio.js"></script>
+</body>
+</html>

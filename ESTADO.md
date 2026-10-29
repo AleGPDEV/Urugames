@@ -25,13 +25,19 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Es el mazo "Naipes Libres", de licencia libre. **Antes de publicar, revisar qué atribución pide su licencia.**
 
 ### Memoria (`juegos/memoria/`) · jugable
-- Es el **único juego terminado** por ahora.
 - Modos: Solo, vs 1, vs 2 o vs 3, contra la compu o con amigos por turnos en el mismo dispositivo.
 - Toma la configuración del lobby:
   - Individual: juega contra la compu, y la dificultad define las parejas (Fácil 6, Normal 8, Difícil 12).
   - Multijugador: queda "con amigos" en local y muestra un aviso de que el modo en línea no existe todavía.
 - La compu recuerda cada carta vista con un 80 % de probabilidad.
 - Cuenta parejas, jugadas y tiempo, y al final declara ganador o empate.
+
+### Culo sucio (`juegos/culosucio/`) · jugable
+- Vos contra 1, 2 o 3 rivales de la compu, con mazo de 40 o 48 cartas.
+- El 1 de oros es el culo sucio y no hace par con nada. Antes de repartir se saca uno de los otros ases para que queden parejos.
+- Mesa en anillo: flechas con el sentido de la ronda y una flecha dorada que muestra de quién saca el jugador de turno.
+- Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+- Todavía no usa la dificultad del menú: la compu saca al azar.
 
 ## Qué falta
 
@@ -68,3 +74,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | — | Lobby con enlaces a cada juego y páginas provisorias (commit `c466d8d`) |
 | 29/10/2026 | Juego **Memoria** completo (solo, vs 1, vs 2, vs 3), mazo `img/baraja.jpg`, Memoria agregada a `js/juegos.js` y README actualizado |
 | 29/10/2026 | Este documento de estado |
+| 29/10/2026 | Juego **Culo sucio** completo (vs 1, 2 o 3 rivales de la compu) y agregado a `js/juegos.js` |

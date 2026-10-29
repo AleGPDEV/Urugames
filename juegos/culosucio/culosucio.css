@@ -1,0 +1,56 @@
+/* Culo sucio: usa los colores de css/lobby.css. Clases con prefijo cs- para no chocar con .back y .card de otros estilos. */
+.aviso { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--felt-light); color: var(--muted); }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ctrl select, .ctrl button { font: inherit; font-weight: 600; min-height: 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--felt-light); color: var(--ivory); padding: 0 14px; }
+.ctrl select option { color: var(--ink); background: var(--card); }
+.ctrl button.primary { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.ctrl :focus-visible, .cs-card:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* img/baraja.jpg: grilla de 12 columnas (1 a 12) x 5 filas (oros, copas, espadas, bastos, dorso) */
+.cs-card { width: 44px; height: 67px; flex: none; position: relative; border-radius: 5px; background-color: var(--card); background-image: url(../../img/baraja.jpg); background-size: 1200% 500%; background-repeat: no-repeat; box-shadow: 0 2px 3px rgba(0,0,0,.35); user-select: none; }
+
+/* Mesa ovalada con los jugadores en anillo */
+.cs-mesa { position: relative; width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 1 / 0.95; max-height: 560px; }
+.cs-oval { position: absolute; inset: 7% 9%; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, var(--felt-light) 0%, var(--felt-dark) 75%); border: 10px solid #4A2C17; box-shadow: inset 0 0 30px rgba(0,0,0,.5), 0 6px 18px rgba(0,0,0,.5); }
+.cs-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.cs-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 42%; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.cs-row { display: flex; gap: 14px; align-items: flex-end; }
+.cs-mini { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.cs-mini .cs-card { width: 30px; height: 46px; }
+.cs-stack { display: flex; padding-right: 16px; }
+.cs-stack .cs-card { margin-right: -16px; }
+.cs-flow { font-size: 13px; line-height: 1.25; min-height: 2.5em; }
+.cs-flow b { color: var(--gold); }
+
+.cs-seat { position: absolute; transform: translate(-50%,-50%); width: 98px; padding: 6px 6px 7px; border-radius: 12px; background: rgba(10,46,34,.94); border: 2px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 4px; transition: border-color .2s, box-shadow .2s, opacity .2s; }
+.cs-seat .nm { font-weight: 600; font-size: 14px; line-height: 1.1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cs-seat .ct { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cs-fan { display: flex; height: 34px; padding-right: 13px; justify-content: center; }
+.cs-fan .cs-card { width: 22px; height: 34px; margin-right: -13px; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.cs-seat.turn { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(217,164,65,.3); }
+.cs-seat.src { border-color: var(--ivory); border-style: dashed; }
+.cs-seat.out { opacity: .5; }
+.cs-seat.out .cs-fan { display: none; }
+.cs-seat.loser { border-color: var(--copas); box-shadow: 0 0 0 3px rgba(178,58,49,.45); }
+.cs-seat.me { background: rgba(42,29,5,.94); }
+.cs-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; padding: 1px 6px; border-radius: 99px; background: var(--line); white-space: nowrap; }
+.cs-tag.lose { background: var(--copas); }
+
+.cs-fly { position: absolute; width: 30px; height: 46px; transform: translate(-50%,-50%); transition: left .5s ease, top .5s ease; z-index: 5; pointer-events: none; }
+
+.cs-msg { background: var(--felt-dark); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 46px; line-height: 1.4; }
+.cs-msg b { color: var(--gold); }
+.cs-panel { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--felt-dark); display: flex; flex-direction: column; gap: 8px; }
+.cs-panel[hidden] { display: none; }
+.cs-panel.hot { border-color: var(--gold); }
+.cs-ph { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; }
+.cs-ph .ct { font-weight: 400; font-size: 13px; color: var(--muted); }
+.cs-hand { display: flex; flex-wrap: wrap; gap: 5px; min-height: 67px; }
+.cs-mine .cs-card { width: 56px; height: 86px; }
+.cs-pickable .cs-card { cursor: pointer; transition: transform .12s; }
+.cs-pickable .cs-card:hover { transform: translateY(-5px); }
+.cs-card.new { animation: cs-pop .6s ease; }
+@keyframes cs-pop { 0% { transform: translateY(-14px) scale(1.08); box-shadow: 0 0 0 3px var(--gold); } 100% { transform: none; } }
+
+@media (max-width: 420px) { .cs-seat { width: 88px; } .cs-seat .nm { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .cs-card.new { animation: none; } .cs-pickable .cs-card, .cs-fly { transition: none; } }
