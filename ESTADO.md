@@ -22,6 +22,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
   - Columnas: del 1 al 12.
   - Filas: oros, copas, espadas, bastos, y en la última fila una carta en blanco y el dorso.
 - Se usa como *sprite* con CSS: `background-size: 1200% 500%` y `background-position: (columna/11·100)% (fila/4·100)%`. El ejemplo está en `juegos/memoria/memoria.css` y en la función `pos()` de `memoria.js`.
+- `img/baraja-recortada.webp` es la misma grilla sin el borde negro de cada celda, más liviana (la usa Conga).
 - Es el mazo "Naipes Libres", de licencia libre. **Antes de publicar, revisar qué atribución pide su licencia.**
 
 ### Memoria (`juegos/memoria/`) · jugable
@@ -39,10 +40,32 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
 - Todavía no usa la dificultad del menú: la compu saca al azar.
 
+### Conga (`juegos/conga/`) · jugable
+- Vos contra 1 o 2 máquinas (2 o 3 jugadores). Se elige desde los botones de abajo de la planilla y queda guardado en `localStorage` (clave `urugames-conga`).
+- Baraja de 50 cartas: del 1 al 12 de cada palo y 2 comodines. Se reparten 7.
+- Reglas implementadas:
+  - Piernas (3 o 4 del mismo número) y escaleras (3 o más seguidas del mismo palo). El comodín reemplaza cualquier carta.
+  - Se corta al tirar si lo suelto suma 5 o menos. Cortar con todo ligado vale −10.
+  - El comodín suelto vale 50.
+  - La carta levantada del pozo no se puede tirar en el mismo turno.
+  - Conga (cortar con una escalera de 7 del mismo palo) gana la partida en el acto.
+  - Con 2 jugadores, el que pasa de 100 pierde. Con 3, queda afuera y gana el último que queda.
+- Sin ayudas en pantalla: no se marcan las combinaciones ni se muestran los puntos sueltos. Si el jugador intenta cortar sin poder, se le avisa.
+- Mano en abanico que se ordena arrastrando las cartas (o con las flechas del teclado). Para tirar, se toca una carta y se aprieta Tirar, o se suelta sobre el pozo.
+- Animaciones de reparto de a una carta, de levantar del mazo o del pozo y de tirar. Se saltean si el sistema pide reducir movimiento.
+- Planilla en hoja de cuadernola con el total acumulado por mano.
+- Usa la dificultad del menú:
+  - Fácil: la compu solo levanta del pozo si le sirve para cortar, y a veces tira cualquier carta.
+  - Normal: juega por heurística (puntos sueltos y cartas que casi forman jugada).
+  - Difícil: igual que Normal, y además evita tirar cartas parecidas a las que el jugador levantó del pozo.
+- Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+- Diseño propio, distinto al del lobby (mesa de madera). Tiene su propio `conga.css` y no carga `css/lobby.css`.
+- No reporta resultado ni descuenta fichas: queda para cuando exista el módulo común.
+
 ## Qué falta
 
 ### Juegos
-Truco, Chinchón, Conga, Escoba, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
+Truco, Chinchón, Escoba, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
 
 ### Fichas diarias (sin empezar)
 Es el núcleo de la idea competitiva. Pensado así:
@@ -75,3 +98,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Memoria** completo (solo, vs 1, vs 2, vs 3), mazo `img/baraja.jpg`, Memoria agregada a `js/juegos.js` y README actualizado |
 | 29/10/2026 | Este documento de estado |
 | 29/10/2026 | Juego **Culo sucio** completo (vs 1, 2 o 3 rivales de la compu) y agregado a `js/juegos.js` |
+| 29/10/2026 | Juego **Conga** completo (2 o 3 jugadores contra la compu, dificultad del menú), `img/baraja-recortada.webp` y Conga actualizada en `js/juegos.js` (2 o 3 jugadores) |

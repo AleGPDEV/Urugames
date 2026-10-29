@@ -15,6 +15,7 @@ js/lobby.js           Lógica del menú: modo, dificultad y enlaces
 js/juego-base.js      Lee cómo se entró al juego (window.URUGAMES)
 juegos/<id>/index.html  Un juego por carpeta
 img/baraja.jpg        Mazo completo (12 columnas x 5 filas: oros, copas, espadas, bastos, dorso)
+img/baraja-recortada.webp  La misma grilla sin el borde de cada celda
 ```
 
 ## Cómo se conecta el menú con cada juego
