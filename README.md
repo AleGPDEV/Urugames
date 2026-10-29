@@ -2,6 +2,8 @@
 
 Juegos de baraja española en el navegador: Truco, Chinchón, Conga, Escoba, Brisca, Tute, Mus, Siete y medio y Memoria, en modo individual o multijugador.
 
+Estado actual del desarrollo y próximos pasos: ver [ESTADO.md](ESTADO.md).
+
 ## Estructura
 
 ```
