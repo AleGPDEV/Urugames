@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "perfiles": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.child('nombre').isString() && newData.child('nombre').val().length <= 20"
+      }
+    },
+    "locks": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "$juego": {
+      ".read": "auth != null",
+      "$coleccion": {
+        ".indexOn": ["createdAt"],
+        "$id": {
+          ".write": "auth != null",
+          ".validate": "!newData.exists() || (newData.child('json').isString() && newData.child('json').val().length < 200000)"
+        }
+      }
+    }
+  }
+}

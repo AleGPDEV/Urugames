@@ -16,7 +16,7 @@
   <header class="top">
     <div class="brand"><h1 id="nombre">Truco</h1><span class="sub">uruguayo, con muestra y flor</span></div>
   </header>
-  <p class="aviso" id="aviso" hidden>El multijugador en línea todavía no está disponible: por ahora jugás contra la compu.</p>
+  <p class="aviso" id="aviso" hidden>El modo en línea todavía no está configurado: por ahora jugás contra la compu.</p>
 
   <section id="lobby" class="lobby">
     <div class="tile mesa">
@@ -27,6 +27,10 @@
       <div class="joinrow" role="group" aria-label="Pico a pico" id="picoRow" hidden><span class="note">Pico a pico</span><span id="picoBtns" class="btns"></span></div>
       <div class="joinrow" role="group" aria-label="Puntos de la partida"><span class="note">Partida a</span><span id="tgtBtns" class="btns"></span></div>
       <div class="btns"><button class="btn yes" data-act="local">Jugar contra la máquina</button></div>
+    </div>
+    <div class="tile pizarra" id="onlineTile">
+      <h2>Con amigos en línea</h2>
+      <div id="online"></div>
     </div>
   </section>
 
@@ -57,6 +61,8 @@
 </div>
   <script src="../../js/juegos.js"></script>
   <script src="../../js/juego-base.js"></script>
+  <script src="../../js/firebase-config.js"></script>
+  <script src="../../js/online.js"></script>
   <script src="truco.js"></script>
 </body>
 </html>

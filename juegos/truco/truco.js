@@ -530,18 +530,35 @@ function leaveTable(){ if(TUNSUB){TUNSUB();TUNSUB=null;} TREF=null; TCODE=null; 
 
 /* ---------- en línea ---------- */
 let LOBBY_DOCS=[], LOBBY_ERR='', lobbyUnsub=null, ONLINE_READY=false;
+let FIRST_LIST=false;
 async function initOnline(){
+  // Conexión común de Urugames (js/online.js, Firebase)
   try{
-    const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
-    DB=db; USER=user;
-    if(user){MYID=await user.id(); CAN_WRITE=await user.can('data.write');}
+    const on=window.UruOnline?await UruOnline.init('truco'):null;
+    if(on){DB=on.db; USER=on.user; MYID=on.uid; CAN_WRITE=true;}
   }catch(e){DB=null;}
   if(DB&&MYID){
     lobbyUnsub=DB.collection('mesas').where('status','in',['waiting','playing','done']).onSnapshot(s=>{
-      LOBBY_DOCS=s.docs.map(d=>({id:d.id,...d.data()})).filter(d=>Array.isArray(d.seats));renderLobby();
+      LOBBY_DOCS=s.docs.map(d=>({id:d.id,...d.data()})).filter(d=>Array.isArray(d.seats));
+      if(!FIRST_LIST){FIRST_LIST=true;autoSala();}
+      renderLobby();
     },()=>{LOBBY_ERR='No se pudo leer la lista de mesas.';renderLobby();});
-  }
+  }else if(URU_MULTI){$('aviso').hidden=false;}
   ONLINE_READY=true; renderLobby();
+}
+// Lo que eligió el jugador en el menú principal: partida rápida, sala nueva o un código
+const URU=window.URUGAMES||{}, URU_MULTI=URU.modo==='multi';
+let AUTO_DONE=false;
+function autoSala(){
+  if(!URU_MULTI||AUTO_DONE||!URU.sala)return;
+  AUTO_DONE=true;
+  if(URU.sala==='nueva')return createTable();
+  if(URU.sala==='rapida'){
+    const open=LOBBY_DOCS.filter(d=>d.status==='waiting'&&!d.seats.includes(MYID)&&d.seats.includes(null)&&Date.now()-(d.createdAt||0)<3600e3)
+      .sort((a,b)=>(b.seats.length===PLAYERS)-(a.seats.length===PLAYERS)||(b.createdAt||0)-(a.createdAt||0));
+    return open.length?joinTable(open[0].id):createTable();
+  }
+  return joinTable(URU.sala);
 }
 async function names(ids){
   const out={}; ids=ids.filter(Boolean);
@@ -559,13 +576,24 @@ async function renderLobby(){
   const box=$('online'); if(!box)return;
   if(!ONLINE_READY){box.innerHTML='<p class="note">Conectando con la mesa compartida…</p>';return;}
   if(!DB||!MYID){
-    box.innerHTML=`<p>Para jugar con otras personas tenés que abrir esta página con tu cuenta de Claude, dentro de la app o en claude.ai.</p><p class="note">Mientras tanto podés jugar contra la máquina.</p>`;
+    box.innerHTML=window.UruOnline&&UruOnline.disponible()
+      ?`<p>No se pudo conectar con el servidor de mesas. Revisá la conexión y recargá la página.</p><p class="note">Mientras tanto podés jugar contra la máquina.</p>`
+      :`<p>El modo en línea todavía no está configurado.</p><p class="note">Mientras tanto podés jugar contra la máquina.</p>`;
     return;
   }
-  if(CAN_WRITE===false){
-    box.innerHTML=`<p>Podés ver la página pero no sentarte en una mesa.</p><p class="note">Pedile a quien te la compartió que te invite como Editor desde el menú Compartir.</p>`;
-    return;
+  // La parte fija (nombre, botones, código) se dibuja una sola vez para no borrar lo que se está escribiendo
+  if(!$('onlineList')){
+    box.innerHTML=`
+      <div class="joinrow"><label class="note" for="nick">Tu nombre</label><input id="nick" maxlength="20" autocomplete="nickname" placeholder="Cómo te ven los demás" value="${esc(UruOnline.nombre())}"></div>
+      <p id="onlineIntro"></p>
+      <div class="btns"><button class="btn yes" data-act="create" id="createBtn"></button></div>
+      <div class="joinrow"><label class="note" for="code">Código</label><input id="code" maxlength="4" autocomplete="off" placeholder="ABCD"><button class="btn ghost" data-act="joincode">Unirme</button></div>
+      <div class="err" id="lobbyErr"></div>
+      <div id="onlineList"></div>`;
   }
+  $('onlineIntro').textContent=`Abrí una mesa de ${PLAYERS} y pasale el código a tus amigos, o sentate en una que esté esperando. Los lugares que nadie ocupe los juega la máquina.`;
+  $('createBtn').textContent=`Abrir una mesa de ${PLAYERS}`;
+  $('lobbyErr').textContent=LOBBY_ERR;
   const mine=LOBBY_DOCS.filter(d=>d.seats.includes(MYID));
   const open=LOBBY_DOCS.filter(d=>d.status==='waiting'&&!d.seats.includes(MYID)&&d.seats.includes(null)&&Date.now()-(d.createdAt||0)<6*3600e3);
   const ids=[...new Set([...mine,...open].map(d=>d.host))];
@@ -573,16 +601,11 @@ async function renderLobby(){
   const who=id=>esc(N[id]||'Alguien');
   const free=d=>d.seats.filter(x=>!x).length;
   const li=(d,label,act,btn)=>`<li><span class="code">${esc(d.id)}</span><span class="meta">${label}</span><button class="btn yes sm" data-act="${act}:${esc(d.id)}">${btn}</button></li>`;
-  box.innerHTML=`
-    <p>Abrí una mesa de ${PLAYERS} y pasale el código a tus amigos, o sentate en una que esté esperando. Los lugares que nadie ocupe los juega la máquina.</p>
-    <div class="btns"><button class="btn yes" data-act="create">Abrir una mesa de ${PLAYERS}</button></div>
-    <div class="joinrow"><label class="note" for="code">Código</label><input id="code" maxlength="4" autocomplete="off" placeholder="ABCD"><button class="btn ghost" data-act="joincode">Unirme</button></div>
-    <div class="err" id="lobbyErr">${esc(LOBBY_ERR)}</div>
+  $('onlineList').innerHTML=`
     ${mine.length?`<h2 style="font-size:1.15rem">Tus mesas</h2><ul class="tables">${mine.map(d=>{const me=d.seats.indexOf(MYID),mt=me%2;
       return li(d,`de ${d.seats.length}${d.status==='waiting'?', esperando gente':d.g?`, ${d.g.score[mt]} a ${d.g.score[1-mt]}`:''}${d.status==='done'?', terminada':''}`,'resume','Seguir');}).join('')}</ul>`:''}
     <h2 style="font-size:1.15rem">Mesas esperando gente</h2>
-    ${open.length?`<ul class="tables">${open.map(d=>li(d,`de ${d.seats.length}, abrió ${who(d.host)}, ${free(d)} ${free(d)===1?'lugar':'lugares'} libres`,'join','Sentarse')).join('')}</ul>`:'<p class="empty">No hay mesas abiertas ahora. Abrí una y avisale a tus amigos.</p>'}
-    <p class="note">Tus amigos necesitan acceso a esta página como Editor (menú Compartir, invitar por correo).</p>`;
+    ${open.length?`<ul class="tables">${open.map(d=>li(d,`de ${d.seats.length}, abrió ${who(d.host)}, ${free(d)} ${free(d)===1?'lugar':'lugares'} libres`,'join','Sentarse')).join('')}</ul>`:'<p class="empty">No hay mesas abiertas ahora. Abrí una y avisale a tus amigos.</p>'}`;
 }
 function lobbyError(msg){LOBBY_ERR=msg;const e=$('lobbyErr');if(e)e.textContent=msg;}
 function newCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ';let s='';for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
@@ -704,6 +727,7 @@ function openZoom(){
   z.hidden=false; z.querySelector('button').focus();
 }
 function closeZoom(){const z=$('zoom');if(z&&!z.hidden){z.hidden=true;}}
-// Configuración según cómo se entró desde el menú (window.URUGAMES)
-if(window.URUGAMES&&window.URUGAMES.modo==='multi')$('aviso').hidden=false;
-show('lobby'); renderLobby();
+document.addEventListener('change',e=>{if(e.target.id==='nick'&&window.UruOnline)e.target.value=UruOnline.setNombre(e.target.value);});
+// Configuración según cómo se entró desde el menú (window.URUGAMES): en multijugador va directo a la parte en línea
+show('lobby'); renderLobby(); initOnline();
+if(URU_MULTI){const t=$('onlineTile');if(t)t.scrollIntoView({block:'start'});}

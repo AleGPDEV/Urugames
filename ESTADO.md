@@ -105,11 +105,11 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - **Sin ayudas en la mesa:** no se marcan piezas ni matas ni se muestra el envido.
 - **Configuración del lobby:**
   - Toma `window.URUGAMES`. La dificultad cambia a la compu: en Fácil tira al azar a veces y canta peor; en Difícil arriesga menos.
-  - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+  - **En línea (Firebase):** usa `js/online.js`. Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa. En la página del Truco está el recuadro "Con amigos en línea" con tu nombre, el código y la lista de mesas. Los lugares libres los puede jugar la máquina. Probado con dos jugadores simulados en una partida completa.
 - **Resultado:** al terminar la partida emite el evento `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, pensado para el ranking.
 - **Probado** con 600 partidas simuladas (200 de 2, de 4 y de 6) sin trabarse.
 - **Pendiente:**
-  - El código de mesas en línea vino de una versión que guardaba las partidas en el servicio de Claude. Acá quedó sin usar (`createTable`, `joinTable`, `openTable`, `push`) y hay que reconectarlo al backend que se elija. En línea, las cartas de todos viajan en el mismo documento: para jugar con plata, el reparto y la validación tienen que pasar al servidor.
+  - En línea, las cartas de todos viajan en el mismo documento y cada jugador escribe la partida: alguien con conocimientos podría ver las cartas ajenas o hacer trampa. Para competir con fichas, el reparto y la validación tienen que pasar a un servidor (por ejemplo Cloud Functions).
   - Las señas entre compañeros no existen (se ven las cartas del compañero).
   - Faltan audios para "Está bien" y "Son buenas".
 
@@ -145,9 +145,12 @@ Es el núcleo de la idea competitiva. Pensado así:
 - Cada juego debería avisar al terminar con un resultado común, por ejemplo `{ juego, resultado: 'gano'|'perdio'|'empate', puntaje, tiempo }`, para alimentar el ranking.
 - Las fichas y el ranking **tienen que estar en un servidor**. Si se guardan solo en el navegador, alcanza con borrar los datos o cambiar de dispositivo para tener fichas nuevas.
 
-### Multijugador en línea (sin empezar)
-- El lobby ya arma los enlaces de sala (`rapida`, `nueva` o un código), pero no hay servidor detrás.
-- Hace falta definir un backend: WebSockets o un servicio como Firebase o Supabase.
+### Multijugador en línea (empezado: Truco)
+- Backend elegido: **Firebase** (Realtime Database + inicio de sesión anónimo).
+- `js/firebase-config.js`: datos del proyecto. Si está vacío, los juegos avisan que el modo en línea no está configurado y se juega contra la compu.
+- `js/online.js`: módulo común. `UruOnline.init('<juego>')` devuelve `{ db, user, uid }`; `db.doc('mesas/ABCD')` y `db.collection('mesas')` guardan cada mesa como JSON en `<juego>/mesas/<código>`. El nombre del jugador se guarda en `perfiles/<uid>`.
+- `database.rules.json`: reglas de la base. Hay que copiarlas en la consola de Firebase (Realtime Database → Reglas), porque el modo de prueba vence a los 30 días.
+- Falta: Conga, Culo sucio, Chancho va, Roba montón y Memoria.
 
 ### Lobby
 Estos elementos están en la pantalla pero todavía no hacen nada:
@@ -176,3 +179,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Roba montón** completo (vs 1, 2 o 3 rivales de la compu, con animaciones y dificultad del menú), agregado a `js/juegos.js` y al README |
 | 29/10/2026 | Juego **Truco uruguayo** completo: 2, 4 o 6 jugadores, pico a pico, flor y contraflor, mesa en ronda, animaciones, reparto automático y audios de los cantos |
 | 29/10/2026 | Juego **Escoba de 15** completo (vos contra la compu, a 15 puntos, pista y dificultad del menú). En `js/juegos.js` pasa a 2 jugadores |
+| 29/10/2026 | **Multijugador en línea** con Firebase: módulo común `js/online.js`, reglas `database.rules.json` y Truco conectado (crear sala, partida rápida y unirse con código desde el menú) |
