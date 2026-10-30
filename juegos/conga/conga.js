@@ -1,21 +1,18 @@
-// Conga con baraja española: vos contra 1 o 2 máquinas, a 100 puntos.
-// Usa window.URUGAMES (js/juego-base.js) para la dificultad y para avisar que el multijugador en línea no existe todavía.
+// Conga con baraja española, de 2 o 3 jugadores, a 100 puntos: contra la compu o en línea con amigos (js/online.js).
+// Usa window.URUGAMES (js/juego-base.js) para la dificultad y para entrar directo a una mesa desde el menú.
 (function(){
 const SUITS=['o','c','e','b'];
 const SUIT_NAME={o:'oros',c:'copas',e:'espadas',b:'bastos'};
-const GCOL=['#d9ae57','#7fb7d6','#9ccf84','#e58f7d'];
 const LIMIT=100;
 const REDUCE=window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=id=>document.getElementById(id);
 const val=c=>c.s==='j'?50:c.n;
 const cname=c=>c.s==='j'?'comodín':`${c.n} de ${SUIT_NAME[c.s]}`;
 const sleep=ms=>new Promise(r=>setTimeout(r, REDUCE?Math.min(ms,80):ms));
-let UID=0;
 const URU=window.URUGAMES||{};
 const DIF=['facil','normal','dificil'].includes(URU.dificultad)?URU.dificultad:'normal';
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function newDeck(){const d=[];for(const s of SUITS)for(let n=1;n<=12;n++)d.push({id:UID++,n,s});d.push({id:UID++,n:0,s:'j'},{id:UID++,n:0,s:'j'});return shuffle(d)}
 
 /* ---------- combinaciones ---------- */
 function meldType(cs){
@@ -78,10 +75,11 @@ function hval(hand){
   return r.dw-bonus;
 }
 // Dificultad: Fácil a veces tira cualquier carta; Difícil además evita tirarte cartas que se parecen a las que levantaste del pozo.
-function feeds(c){
-  return (S.picked||[]).some(d=>c.s!=='j' && (d.n===c.n || (d.s===c.s && Math.abs(d.n-c.n)<=2)));
+function feeds(c, s){
+  const picked=(G.picked||[]).filter((_,p)=>p!==s).flat();
+  return picked.some(d=>c.s!=='j' && (d.n===c.n || (d.s===c.s && Math.abs(d.n-c.n)<=2)));
 }
-function bestDiscard(hand, forbid){
+function bestDiscard(hand, forbid, s){
   let cut=null;
   for(const c of hand){ if(c.id===forbid) continue;
     const dw=solve(hand.filter(x=>x!==c)).dw;
@@ -96,7 +94,7 @@ function bestDiscard(hand, forbid){
   let best=null;
   for(const c of opts){
     let h=hval(hand.filter(x=>x!==c)); if(c.s==='j') h+=30;
-    if(DIF==='dificil' && feeds(c)) h+=3;
+    if(DIF==='dificil' && feeds(c, s)) h+=3;
     if(!best || h<best.h || (h===best.h && val(c)>val(best.card))) best={card:c,h};
   }
   return {card:best.card, h:best.h, cut:false};
@@ -169,172 +167,217 @@ function geom(el){
 const rectOf=(map,id)=>{const e=map.get(id);return e?geom(e):null};
 
 /* ---------- estado ---------- */
-let S, busy=false, epoch=0;
-const BOTS=['m1','m2'];
-const oppMaps={m1:new Map(), m2:new Map()};
-const bn=p=>S.players.length===2?'la máquina':(p==='m1'?'Máquina 1':'Máquina 2');
-const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
-const NAME=p=>p==='me'?'Vos':cap(bn(p));
-const handOf=p=>p==='me'?S.me:S.bots[p];
-const active=()=>S.players.filter(p=>!S.out.includes(p));
-function nextOf(p){ const a=active(); const i=a.indexOf(p); return a[(i+1)%a.length] }
+// G es el estado compartido de la partida: en línea viaja entero a Firebase. Los asientos van de 0 a n-1 y ME es el mío.
+// V es lo que se dibuja: normalmente G; durante el reparto, una copia que se va llenando carta por carta.
+// L guarda lo que es solo de esta pantalla: el orden de mi mano, la carta elegida y los avisos.
+let G=null, V=null, ME=0;
+let MODE='local', HOST=true, DB=null, USER=null, MYID=null, TREF=null, TCODE=null, TUNSUB=null, LOCALREV=0, SEATNAME=[], HOSTNAME='';
+const L={order:[], sel:null, tip:'', lastDrawn:null, dragRect:null, shownK:0, holdResult:false, reported:0};
+const oppMaps=[new Map(),new Map(),new Map()];
+const clone=o=>JSON.parse(JSON.stringify(o));
+const active=()=>G.cpu.map((_,s)=>s).filter(s=>!G.out.includes(s));
+function nextOf(s){ const a=active(); return a[(a.indexOf(s)+1)%a.length] }
+const who=s=>s===ME?'Vos':(SEATNAME[s]||`Jugador ${s+1}`);
 let NPLAYERS=2; try{ NPLAYERS=+localStorage.getItem('urugames-conga')||2 }catch(_){}
-function freshGame(n){
-  if(n){ NPLAYERS=n; try{ localStorage.setItem('urugames-conga', n) }catch(_){} }
-  const players=['me',...BOTS.slice(0,NPLAYERS-1)];
-  S={players, out:[], scores:Object.fromEntries(players.map(p=>[p,0])), rows:[], round:0,
-     starter:players[Math.floor(Math.random()*players.length)], log:[]};
-  deal();
-}
-async function deal(){
-  const my=++epoch; busy=true;
-  S.round++; S.deck=newDeck(); S.me=[]; S.bots={}; for(const p of S.players) if(p!=='me') S.bots[p]=[];
-  S.pozo=[]; S.order=[]; S.log=[]; S.picked=[];
-  S.phase='dealing'; S.tip=''; S.turn=null; S.fromPozo=null; S.sel=null; S.lastDrawn=null; S.result=null;
-  if(S.out.includes(S.starter)) S.starter=nextOf(S.starter);
-  S.msg='Repartiendo…'; render();
-  const seq=[]; let p=S.starter; for(let k=0;k<active().length;k++){ seq.push(p); p=nextOf(p) }
-  await sleep(250);
-  for(let i=0;i<7*seq.length;i++){
-    if(my!==epoch) return;
-    const who=seq[i%seq.length], c=S.deck.pop(), from=deckRect();
-    if(who==='me'){ S.me.push(c); S.order.push(c.id) } else S.bots[who].push(c);
-    render();
-    if(who==='me') fly(from, myMap.get(c.id), backEl()); else fly(from, oppMaps[who].get(c.id));
-    await sleep(seq.length===3?115:150);
-  }
-  await sleep(480); if(my!==epoch) return;
-  const c=S.deck.pop(); S.pozo.push(c); render();
-  await fly(deckRect(), pozoMap.get(c.id), backEl());
-  await sleep(250); if(my!==epoch) return;
-  sortOrder('palo', false);
-  const first=seq[0];
-  S.turn=first; S.phase='draw'; S.starter=nextOf(first); busy=false;
-  S.msg = first==='me' ? '<strong>Empezás vos.</strong> Levantá una carta del mazo o del pozo.' : `Empieza ${bn(first)}.`;
-  render(); if(first!=='me') aiTurn(first);
-}
-function drawDeck(){
-  if(!S.deck.length){ const top=S.pozo.pop(); S.deck=shuffle(S.pozo); S.pozo=[top] }
-  return S.deck.pop()||null;
-}
-function sortOrder(mode, doRender=true){
-  let cards;
-  if(mode==='jugadas'){ const r=solve(S.me); cards=[...r.melds.flat(), ...r.loose.slice().sort(suitSort)] }
-  else cards=S.me.slice().sort(suitSort);
-  S.order=cards.map(c=>c.id);
-  if(doRender) render();
-}
-function passTurn(from){
-  const p=nextOf(from);
-  S.turn=p; S.phase='draw';
-  if(p==='me'){ S.msg='<strong>Tu turno.</strong> Levantá del mazo o del pozo.'; render() }
-  else { render(); aiTurn(p) }
-}
+function localNames(n){ return n===2?['Vos','La máquina']:['Vos','Máquina 1','Máquina 2'] }
 
-/* ---------- jugador ---------- */
-async function playerDraw(src){
-  if(busy||S.turn!=='me'||S.phase!=='draw') return;
-  busy=true; let c, from, startEl=null;
-  if(src==='pozo'){
-    if(!S.pozo.length){ busy=false; return }
-    c=S.pozo[S.pozo.length-1]; from=rectOf(pozoMap,c.id); S.pozo.pop(); S.fromPozo=c.id; S.picked.push(c);
-    S.msg=`Levantaste el <strong>${cname(c)}</strong> del pozo. Elegí qué carta tirar.`;
-  } else {
-    from=deckRect(); c=drawDeck(); if(!c){ busy=false; endRound(null); return }
-    S.fromPozo=null; startEl=backEl();
-    S.msg=`Sacaste el <strong>${cname(c)}</strong>. Elegí qué carta tirar.`;
-  }
-  S.me.push(c); S.order.push(c.id); S.lastDrawn=c.id; S.phase='discard'; S.sel=null; S.tip='';
-  render();
-  await fly(from, myMap.get(c.id), startEl);
-  busy=false; render();
+function newDeckFor(g){
+  // ids únicos por partida y por mano, para que una carta nueva nunca reuse el dibujo de otra
+  const d=[]; let i=0, base=g.gid*10000+g.round*100;
+  for(const s of SUITS) for(let n=1;n<=12;n++) d.push({id:base+i++,n,s});
+  d.push({id:base+i++,n:0,s:'j'},{id:base+i++,n:0,s:'j'});
+  return shuffle(d);
 }
-function selectCard(id){
-  if(busy||S.turn!=='me'||S.phase!=='discard') return;
-  S.sel = S.sel===id?null:id;
-  S.tip = S.sel!=null && S.sel===S.fromPozo ? 'Esa la levantaste del pozo, no la podés tirar en este turno.' : '';
-  render();
+function newGame(n, cpu){
+  G={n, cpu, out:[], scores:Array(n).fill(0), rows:[], round:0, gid:1+Math.floor(Math.random()*90000),
+     starter:Math.floor(Math.random()*n), ev:{k:G?G.ev.k:0}, log:[], over:false, winner:null, started:Date.now()};
+  dealRound();
 }
-function canDiscard(id){
-  return !busy && S.turn==='me' && S.phase==='discard' && id!=null && id!==S.fromPozo;
+function dealRound(){
+  G.round++; const deck=newDeckFor(G);
+  G.hands=Array.from({length:G.n},()=>[]); G.picked=Array.from({length:G.n},()=>[]);
+  if(G.out.includes(G.starter)) G.starter=nextOf(G.starter);
+  const seq=[]; let p=G.starter; for(let k=0;k<active().length;k++){ seq.push(p); p=nextOf(p) }
+  const order=[];
+  for(let i=0;i<7*seq.length;i++){ const s=seq[i%seq.length], c=deck.pop(); G.hands[s].push(c); order.push([s,c.id]) }
+  G.pozo=[deck.pop()]; G.deck=deck;
+  G.turn=seq[0]; G.phase='draw'; G.fromPozo=null; G.result=null; G.log=[]; G.lastDraw=null;
+  G.starter=nextOf(seq[0]);
+  setEv({t:'deal', order});
 }
-async function playerDiscard(id, cut, fromRect){
-  if(!canDiscard(id)) return;
-  const c=S.me.find(x=>x.id===id); if(!c) return;
-  const rest=S.me.filter(x=>x!==c);
-  if(cut && solve(rest).dw>5){ S.tip='Todavía no podés cortar: lo que te queda suelto suma más de 5.'; render(); return }
-  S.tip='';
-  busy=true;
-  const from=fromRect||rectOf(myMap,id);
-  S.me=rest; S.order=S.order.filter(x=>x!==id); S.pozo.push(c);
-  S.sel=null; S.lastDrawn=null; S.fromPozo=null;
-  S.log.push(`Tiraste el ${cname(c)}.`); S.msg = cut?'Cortás…':'';
-  render();
-  await fly(from, pozoMap.get(c.id));
-  busy=false;
-  if(cut){ endRound('me'); return }
-  passTurn('me');
-}
+function setEv(e){ G.ev={...e, k:(G.ev?G.ev.k:0)+1} }
 
-/* ---------- turno de las máquinas ---------- */
-async function aiTurn(p){
-  const my=epoch; busy=true;
-  const who=cap(bn(p));
-  S.msg=`${who} está pensando…`; render();
-  await sleep(650); if(my!==epoch) return;
-  let took=null;
-  if(S.bots[p].length<8){
-    const hand=S.bots[p], top=S.pozo[S.pozo.length-1]; let take=false;
-    if(top){ const bd=bestDiscard([...hand,top], top.id); if(bd.cut || (DIF!=='facil' && bd.h < hval(hand)-1.5)) take=true }
-    if(take){
-      const from=rectOf(pozoMap,top.id); S.pozo.pop(); S.bots[p].push(top); S.fromPozo=top.id; took=top;
-      S.msg=`${who} levantó el <strong>${cname(top)}</strong> del pozo.`; render();
-      await fly(from, oppMaps[p].get(top.id), cardEl(top));
-    } else {
-      const from=deckRect(), got=drawDeck();
-      if(!got){ busy=false; endRound(null); return }
-      S.bots[p].push(got); S.fromPozo=null; S.msg=`${who} sacó del mazo.`; render();
-      await fly(from, oppMaps[p].get(got.id));
-    }
+/* acciones: cambian G y dejan anotado el evento para animarlo */
+function actDraw(s, src){
+  let c;
+  if(src==='pozo'){ c=G.pozo.pop(); G.fromPozo=c.id; G.picked[s].push(c) }
+  else {
+    if(!G.deck.length && G.pozo.length>1){ const top=G.pozo.pop(); G.deck=shuffle(G.pozo); G.pozo=[top] }
+    c=G.deck.pop();
+    if(!c){ endRound(null); setEv({t:'empty'}); return }
+    G.fromPozo=null;
   }
-  await sleep(450); if(my!==epoch) return;
-  const bd=bestDiscard(S.bots[p], S.fromPozo);
-  const from=rectOf(oppMaps[p],bd.card.id);
-  S.bots[p]=S.bots[p].filter(x=>x!==bd.card); S.pozo.push(bd.card); S.fromPozo=null;
-  S.log.push(took ? `${who} levantó el ${cname(took)} y tiró el ${cname(bd.card)}.` : `${who} sacó del mazo y tiró el ${cname(bd.card)}.`);
-  S.msg=''; render();
-  await fly(from, pozoMap.get(bd.card.id), backEl());
-  if(my!==epoch) return;
-  busy=false;
-  if(bd.cut){ endRound(p); return }
-  passTurn(p);
+  G.hands[s].push(c); G.phase='discard'; G.lastDraw={s, src, c:src==='pozo'?c:null};
+  setEv({t:'draw', s, src, id:c.id, c:src==='pozo'?c:null});
 }
-
-/* ---------- fin de mano ---------- */
+function actDiscard(s, id, cut){
+  const c=G.hands[s].find(x=>x.id===id);
+  G.hands[s]=G.hands[s].filter(x=>x!==c); G.pozo.push(c);
+  const took=G.lastDraw&&G.lastDraw.s===s&&G.lastDraw.src==='pozo'?G.lastDraw.c:null;
+  G.log.push({s, took, threw:c}); G.fromPozo=null; G.lastDraw=null;
+  if(cut) endRound(s);
+  else { G.turn=nextOf(s); G.phase='draw' }
+  setEv({t:'discard', s, id, cut:!!cut});
+}
 function endRound(cutter){
-  epoch++; busy=false;
   const act=active(), res={};
   let conga=false;
   for(const p of act){
-    const r=solve(handOf(p)); let pts=cutter?r.dw:0;
+    const r=solve(G.hands[p]); let pts=cutter==null?0:r.dw;
     if(p===cutter){ if(r.dw===0) pts=-10; conga = r.dw===0 && r.melds.length===1 && r.melds[0].length===7 }
-    res[p]={r,pts}; S.scores[p]+=pts;
+    res[p]={melds:r.melds, loose:r.loose, pts}; G.scores[p]+=pts;
   }
-  const row={cut:cutter}; for(const p of S.players) row[p]=res[p]?res[p].pts:null; S.rows.push(row);
+  G.rows.push({pts:G.cpu.map((_,p)=>res[p]?res[p].pts:null), cut:cutter});
   const newlyOut=[];
-  if(!conga) for(const p of act) if(S.scores[p]>LIMIT){ S.out.push(p); newlyOut.push(p) }
-  let over=null;
-  if(conga) over=cutter;
+  if(!conga) for(const p of act) if(G.scores[p]>LIMIT){ G.out.push(p); newlyOut.push(p) }
+  let winner=null;
+  if(conga) winner=cutter;
   else {
     const a=active();
-    if(a.length===1) over=a[0];
-    else if(a.length===0){ over=act.reduce((b,p)=>S.scores[p]<S.scores[b]?p:b); S.out=S.out.filter(p=>p!==over) }
-    else if(S.out.includes('me')) over='afuera';
+    if(a.length===1) winner=a[0];
+    else if(a.length===0){ winner=act.reduce((b,p)=>G.scores[p]<G.scores[b]?p:b); G.out=G.out.filter(p=>p!==winner) }
   }
-  S.phase='over'; S.turn=null;
-  S.result={cutter, conga, over, newlyOut, res};
-  S.msg = cutter==='me'?'Cortaste.':cutter?`${cap(bn(cutter))} cortó.`:'Se terminó el mazo.';
+  // Contra la compu, si quedás afuera se termina la partida
+  if(winner==null && MODE==='local' && G.out.includes(ME)) winner=active().reduce((b,p)=>G.scores[p]<G.scores[b]?p:b);
+  G.over=winner!=null; G.winner=winner;
+  G.phase='over'; G.turn=null;
+  G.result={cutter, conga, newlyOut, res};
+}
+
+/* ---------- cola de estados: cada cambio se anima en orden, sea mío, de la compu o de otro jugador ---------- */
+const Q=[]; let processing=false, SESSION=0, appliedSes=0;
+function commit(){
+  if(MODE==='online') push();
+  enqueue(clone(G));
+}
+function enqueue(st){ Q.push({st, ses:SESSION}); if(!processing) runQueue() }
+async function runQueue(){
+  processing=true;
+  while(Q.length){ const {st,ses}=Q.shift(); if(ses!==SESSION) continue; appliedSes=ses;
+    try{ await applyState(st) }catch(e){ console.error(e); G=st; V=G; render() } }
+  processing=false; render(); afterState();
+}
+async function applyState(st){
+  const e=st.ev||{k:0};
+  if(!G || st.gid!==G.gid) L.shownK=e.k-1;   // partida nueva: se anima desde su reparto
+  const animate=e.k===L.shownK+1;
+  G=st; L.shownK=e.k;
+  if(!animate){ V=G; if(e.t==='deal') resetHand(); render(); return }
+  if(e.t==='deal') return animDeal(e);
+  if(e.t==='draw'){
+    const from=e.src==='pozo'?rectOf(pozoMap,e.id):deckRect();
+    V=G; if(e.s===ME){ L.order.push(e.id); L.lastDrawn=e.id; L.sel=null; L.tip='' }
+    render();
+    const to=e.s===ME?myMap.get(e.id):oppMaps[e.s].get(e.id);
+    const start=e.s===ME&&e.src==='mazo'?backEl():(e.s!==ME&&e.c?cardEl(e.c):null);
+    return fly(from, to, start);
+  }
+  if(e.t==='discard'){
+    const from=e.s===ME?(L.dragRect||rectOf(myMap,e.id)):rectOf(oppMaps[e.s],e.id);
+    L.dragRect=null; if(e.s===ME){ L.sel=null; L.lastDrawn=null }
+    L.holdResult=true; V=G; render();
+    await fly(from, pozoMap.get(e.id), e.s!==ME?backEl():null);
+    L.holdResult=false; return;
+  }
+  V=G; render();
+}
+function resetHand(){ L.order=[]; L.sel=null; L.tip=''; L.lastDrawn=null; $('overlay').hidden=true }
+async function animDeal(e){
+  resetHand();
+  V=clone(G); V.hands=G.hands.map(()=>[]); V.pozo=[]; V.deckCount=G.deck.length+e.order.length+1; V.dealing=true;
   render();
+  const byId=new Map(G.hands.flat().map(c=>[c.id,c]));
+  await sleep(250);
+  for(const [s,id] of e.order){
+    V.hands[s].push(byId.get(id)); V.deckCount--;
+    if(s===ME) L.order.push(id);
+    render();
+    if(s===ME) fly(deckRect(), myMap.get(id), backEl()); else fly(deckRect(), oppMaps[s].get(id));
+    await sleep(e.order.length>14?115:150);
+  }
+  await sleep(450);
+  V.pozo=G.pozo.slice(); V.deckCount--; render();
+  await fly(deckRect(), pozoMap.get(G.pozo[0].id), backEl());
+  await sleep(200);
+  V=G; L.order=G.hands[ME].slice().sort(suitSort).map(c=>c.id); render();
+}
+
+/* ---------- después de cada cambio: turno de la compu y resultado ---------- */
+let cpuTimer=null;
+function afterState(){
+  clearTimeout(cpuTimer);
+  if(!G || appliedSes!==SESSION || Q.length) return;
+  if(G.over && L.reported!==G.gid){ L.reported=G.gid; reportResult() }
+  if(G.phase==='over' || G.turn==null) return;
+  const s=G.turn;
+  if(!G.cpu[s] || !(MODE==='local'||HOST)) return;
+  const k=G.ev.k;
+  cpuTimer=setTimeout(()=>{
+    if(!G||G.ev.k!==k||processing||Q.length||G.turn!==s||appliedSes!==SESSION) return;
+    if(G.phase==='draw'){
+      const hand=G.hands[s], top=G.pozo[G.pozo.length-1]; let take=false;
+      if(top){ const bd=bestDiscard([...hand,top], top.id, s); if(bd.cut || (DIF!=='facil' && bd.h < hval(hand)-1.5)) take=true }
+      actDraw(s, take?'pozo':'mazo');
+    } else {
+      const bd=bestDiscard(G.hands[s], G.fromPozo, s);
+      actDiscard(s, bd.card.id, bd.cut);
+    }
+    commit();
+  }, G.phase==='draw'?650:450);
+}
+function reportResult(){
+  // Resultado común para el ranking (ver ESTADO.md)
+  try{ window.dispatchEvent(new CustomEvent('urugames:resultado',{detail:{juego:'conga', resultado:G.winner===ME?'gano':'perdio',
+    puntaje:G.scores[ME], tiempo:Math.round((Date.now()-(G.started||Date.now()))/1000), jugadores:G.n}})) }catch(_){}
+}
+
+/* ---------- mis jugadas ---------- */
+const myTurn=ph=>!processing && !Q.length && G && G.turn===ME && G.phase===ph;
+function myDraw(src){
+  if(!myTurn('draw')) return;
+  if(src==='pozo' && !G.pozo.length) return;
+  actDraw(ME, src); commit();
+}
+function selectCard(id){
+  if(!myTurn('discard')) return;
+  L.sel = L.sel===id?null:id;
+  L.tip = L.sel!=null && L.sel===G.fromPozo ? 'Esa la levantaste del pozo, no la podés tirar en este turno.' : '';
+  render();
+}
+function canDiscard(id){ return myTurn('discard') && id!=null && id!==G.fromPozo && G.hands[ME].some(c=>c.id===id) }
+function myDiscard(id, cut, fromRect){
+  if(!canDiscard(id)) return;
+  if(cut && solve(G.hands[ME].filter(x=>x.id!==id)).dw>5){ L.tip='Todavía no podés cortar: lo que te queda suelto suma más de 5.'; render(); return }
+  L.tip=''; L.dragRect=fromRect||null;
+  actDiscard(ME, id, cut); commit();
+}
+function sortOrder(){ if(!G) return; L.order=G.hands[ME].slice().sort(suitSort).map(c=>c.id); render() }
+
+/* ---------- partida contra la compu ---------- */
+function freshGame(n){
+  if(n){ NPLAYERS=n; try{ localStorage.setItem('urugames-conga', n) }catch(_){} }
+  leaveTable(); clearTimeout(cpuTimer); SESSION++; MODE='local'; ME=0; HOST=true; SEATNAME=localNames(NPLAYERS);
+  Q.length=0;
+  newGame(NPLAYERS, Array.from({length:NPLAYERS},(_,i)=>i!==0));
+  commit();
+}
+function nextRound(){
+  if(!G || G.phase!=='over' || !(MODE==='local'||HOST)) return;
+  if(G.over){
+    if(MODE==='local') return freshGame();
+    newGame(G.n, G.cpu);
+  } else dealRound();
+  commit();
 }
 
 /* ---------- dibujo ---------- */
@@ -351,86 +394,118 @@ function cardEl(c, opts={}){
   return el;
 }
 function backEl(){const d=document.createElement('div'); d.className='card back'; return d}
+const esc=t=>String(t).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+function message(){
+  if(!G) return '';
+  if(V&&V.dealing) return 'Repartiendo…';
+  if(G.phase==='over'){ const c=G.result&&G.result.cutter; return c==null?'Se terminó el mazo.':c===ME?'Cortaste.':`${esc(who(c))} cortó.` }
+  const s=G.turn, n=esc(who(s));
+  if(s===ME){
+    if(G.phase==='draw') return '<strong>Tu turno.</strong> Levantá del mazo o del pozo.';
+    const d=G.lastDraw, c=d&&G.hands[ME].find(x=>x.id===L.lastDrawn);
+    return d&&d.src==='pozo'?`Levantaste el <strong>${cname(d.c)}</strong> del pozo. Elegí qué carta tirar.`
+      : c?`Sacaste el <strong>${cname(c)}</strong>. Elegí qué carta tirar.`:'Elegí qué carta tirar.';
+  }
+  if(G.phase==='draw') return G.cpu[s]?`${n} está pensando…`:`Le toca a ${n}.`;
+  const d=G.lastDraw;
+  return d&&d.src==='pozo'?`${n} levantó el <strong>${cname(d.c)}</strong> del pozo.`:`${n} sacó del mazo.`;
+}
+function logLine(l){
+  if(l.s===ME) return l.took?`Levantaste el ${cname(l.took)} y tiraste el ${cname(l.threw)}.`:`Tiraste el ${cname(l.threw)}.`;
+  const n=esc(who(l.s));
+  return l.took?`${n} levantó el ${cname(l.took)} y tiró el ${cname(l.threw)}.`:`${n} sacó del mazo y tiró el ${cname(l.threw)}.`;
+}
+const others=()=>Array.from({length:G.n-1},(_,i)=>(ME+1+i)%G.n);
 
 function render(){
-  $('roundInfo').textContent=`Mano ${S.round}`;
-  // rival
+  if(!G||!V) return;
+  $('roundInfo').textContent=`Mano ${V.round}`;
   renderOpps();
   // mazo
-  $('deckBtn').hidden = !(S.deck.length || S.pozo.length>1);
-  $('deckCount').textContent=S.deck.length;
+  const dc=V.deckCount!=null?V.deckCount:V.deck.length;
+  $('deckBtn').hidden = !(dc || V.pozo.length>1);
+  $('deckCount').textContent=dc;
   // pozo (las dos de arriba, para que se vea la anterior mientras vuela una nueva)
-  const pz=S.pozo.slice(-2);
+  const pz=V.pozo.slice(-2);
   syncKeyed($('pozoSlot'), pz, c=>cardEl(c,{button:true}), pozoMap);
   pz.forEach((c,i)=>{ const e=pozoMap.get(c.id), top=i===pz.length-1;
     e.classList.toggle('under',!top); e.tabIndex=top?0:-1;
     e.setAttribute('aria-label', top?'Levantar del pozo: '+cname(c):cname(c)); });
-  const canDraw=!busy&&S.turn==='me'&&S.phase==='draw';
-  $('deckPile').classList.toggle('live',canDraw); $('pozoPile').classList.toggle('live',canDraw&&S.pozo.length>0);
-  $('msg').innerHTML=S.log.slice(-2).map(l=>`<span class="small">${l}</span>`).join('')+(S.msg?`<span>${S.msg}</span>`:'');
+  const canDraw=myTurn('draw') && V===G;
+  $('deckPile').classList.toggle('live',canDraw); $('pozoPile').classList.toggle('live',canDraw&&G.pozo.length>0);
+  const lines=V.dealing?[]:(G.log||[]).slice(-2).map(logLine);
+  const m=message();
+  $('msg').innerHTML=lines.map(l=>`<span class="small">${l}</span>`).join('')+(m?`<span>${m}</span>`:'');
 
   // mi mano
-  const byId=new Map(S.me.map(c=>[c.id,c]));
-  S.order=S.order.filter(id=>byId.has(id));
-  for(const c of S.me) if(!S.order.includes(c.id)) S.order.push(c.id);
-  const mine=S.order.map(id=>byId.get(id));
+  const mineArr=V.hands[ME]||[], byId=new Map(mineArr.map(c=>[c.id,c]));
+  L.order=L.order.filter(id=>byId.has(id));
+  for(const c of mineArr) if(!L.order.includes(c.id)) L.order.push(c.id);
+  const mine=L.order.map(id=>byId.get(id));
   syncKeyed($('myHand'), mine, c=>cardEl(c,{button:true}), myMap, true);
   layoutHand();
   for(const c of mine){
     const e=myMap.get(c.id); if(!e) continue;
-    e.classList.toggle('sel', S.sel===c.id);
-    e.classList.toggle('new', S.lastDrawn===c.id);
+    e.classList.toggle('sel', L.sel===c.id);
+    e.classList.toggle('new', L.lastDrawn===c.id);
   }
-  // botones
-  const disc=!busy&&S.turn==='me'&&S.phase==='discard';
-  const ok=disc && S.sel!=null && S.sel!==S.fromPozo;
+  const ok=canDiscard(L.sel);
   $('btnDiscard').disabled=!ok; $('btnCut').disabled=!ok;
-  $('btnSuit').disabled=!(S.me.length>0 && S.phase!=='dealing');
-  $('tip').textContent=S.tip||'';
+  $('btnSuit').disabled=!mine.length || !!V.dealing;
+  $('tip').textContent=L.tip || (G.out.includes(ME)&&G.phase!=='over'?'Quedaste afuera: estás mirando la partida.':'');
 
   // planilla: como en papel, cada renglón lleva el total acumulado
-  const short=p=>p==='me'?'Vos':(S.players.length===2?'Máquina':(p==='m1'?'Máq. 1':'Máq. 2'));
-  const key=S.players.join();
+  const cols=[ME,...others()];
+  const short=s=>{
+    const t=who(s);
+    if(t==='La máquina') return 'Máquina';
+    let m=t.match(/^Máquina (\d)$/); if(m) return 'Máq. '+m[1];
+    m=t.match(/^Jugador (\d)$/); if(m) return 'Jug. '+m[1];
+    const w=t.split(/\s+/)[0]; return w.length>9?w.slice(0,8)+'.':w;
+  };
+  const key=cols.map(short).join('|');
   if($('sheetHead').dataset.k!==key){
     $('sheetHead').dataset.k=key;
-    $('sheetHead').innerHTML='<tr><th></th>'+S.players.map(p=>`<th>${short(p)}</th>`).join('')+'</tr>';
+    $('sheetHead').innerHTML='<tr><th></th>'+cols.map(s=>`<th>${esc(short(s))}</th>`).join('')+'</tr>';
   }
   const rows=$('rows'); rows.replaceChildren();
-  const acc=Object.fromEntries(S.players.map(p=>[p,0]));
-  S.rows.forEach((x,i)=>{
+  const acc=Array(G.n).fill(0);
+  G.rows.forEach((x,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<th scope="row">${i+1}</th>`+S.players.map(p=>{
-      if(x[p]==null) return '<td class="gone">—</td>';
-      acc[p]+=x[p]; return `<td class="${x.cut===p?'cut':''}${acc[p]>LIMIT?' over':''}">${acc[p]}</td>`;
+    tr.innerHTML=`<th scope="row">${i+1}</th>`+cols.map(p=>{
+      if(x.pts[p]==null) return '<td class="gone">—</td>';
+      acc[p]+=x.pts[p]; return `<td class="${x.cut===p?'cut':''}${acc[p]>LIMIT?' over':''}">${acc[p]}</td>`;
     }).join('');
     rows.append(tr);
   });
-  const blank='<th scope="row"></th>'+S.players.map(()=>'<td></td>').join('');
-  for(let i=S.rows.length;i<6;i++){ const tr=document.createElement('tr'); tr.innerHTML=blank; rows.append(tr) }
-  $('left').textContent = S.rows.length ? `Te faltan ${Math.max(0,LIMIT-S.scores.me)} para pasarte de ${LIMIT}.`
-    : `Se juega a ${LIMIT}. ${S.players.length===2?'El que se pasa, pierde.':'El que se pasa queda afuera; gana el último que queda.'}`;
-  document.querySelectorAll('#seg button').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.n===S.players.length)));
+  const blank='<th scope="row"></th>'+cols.map(()=>'<td></td>').join('');
+  for(let i=G.rows.length;i<6;i++){ const tr=document.createElement('tr'); tr.innerHTML=blank; rows.append(tr) }
+  $('left').textContent = G.rows.length ? `Te faltan ${Math.max(0,LIMIT-G.scores[ME])} para pasarte de ${LIMIT}.`
+    : `Se juega a ${LIMIT}. ${G.n===2?'El que se pasa, pierde.':'El que se pasa queda afuera; gana el último que queda.'}`;
+  document.querySelectorAll('#seg button').forEach(b=>b.setAttribute('aria-pressed', String(MODE==='local' && +b.dataset.n===G.n)));
+  $('tableInfo').hidden=MODE!=='online';
+  if(MODE==='online') $('tableInfo').innerHTML=`Mesa en línea <b>${esc(TCODE)}</b>`;
 
   renderResult();
 }
 function renderOpps(){
-  const box=$('opps'), bots=S.players.filter(p=>p!=='me'), key=bots.join();
+  const box=$('opps'), seats=others(), key=G.gid+':'+ME+':'+seats.join();
   if(box.dataset.k!==key){
     box.dataset.k=key; box.replaceChildren();
-    for(const p of BOTS) oppMaps[p].clear();
-    for(const p of bots){
-      const sec=document.createElement('section'); sec.className='seat'; sec.id='seat-'+p;
+    oppMaps.forEach(m=>m.clear());
+    for(const s of seats){
+      const sec=document.createElement('section'); sec.className='seat'; sec.id='seat-'+s;
       sec.innerHTML=`<span class="who"></span><div class="hand"></div>`;
       box.append(sec);
     }
   }
-  for(const p of bots){
-    const sec=$('seat-'+p), hand=S.bots?.[p]||[], out=S.out.includes(p);
-    sec.classList.toggle('turn', S.turn===p); sec.classList.toggle('gone', out);
-    sec.querySelector('.who').innerHTML = out ? `${NAME(p)}, afuera` : `${NAME(p)}, <b>${hand.length}</b> cartas`;
-    const h=sec.querySelector('.hand');
-    syncKeyed(h, hand, ()=>backEl(), oppMaps[p]);
-    hand.forEach((c,i,a)=>{ const e=oppMaps[p].get(c.id), d=i-(a.length-1)/2; e.style.rotate=(-d*4)+'deg'; e.style.translate=`0 ${(d*d*1.6).toFixed(1)}px`; e.style.zIndex=i+1 });
+  for(const s of seats){
+    const sec=$('seat-'+s), hand=V.hands[s]||[], out=G.out.includes(s);
+    sec.classList.toggle('turn', !V.dealing && G.turn===s); sec.classList.toggle('gone', out);
+    sec.querySelector('.who').innerHTML = out ? `${esc(who(s))}, afuera` : `${esc(who(s))}, <b>${hand.length}</b> cartas`;
+    syncKeyed(sec.querySelector('.hand'), hand, ()=>backEl(), oppMaps[s]);
+    hand.forEach((c,i,a)=>{ const e=oppMaps[s].get(c.id), d=i-(a.length-1)/2; e.style.rotate=(-d*4)+'deg'; e.style.translate=`0 ${(d*d*1.6).toFixed(1)}px`; e.style.zIndex=i+1 });
   }
 }
 function miniHand(r){
@@ -440,34 +515,37 @@ function miniHand(r){
   return box;
 }
 function renderResult(){
-  const ov=$('overlay'), R=S.result;
-  if(!R){ ov.hidden=true; return }
-  if(!ov.hidden) return;
-  ov.hidden=false;
+  const ov=$('overlay'), R=G.result;
+  if(!R || G.phase!=='over' || L.holdResult){ ov.hidden=true; return }
+  const key=G.gid+':'+G.ev.k;
+  if(!ov.hidden && ov.dataset.k===key) return;
+  ov.dataset.k=key; ov.hidden=false;
+  const nm=s=>s===ME?'vos':who(s);
+  const tot=[ME,...others()].map(p=>`${esc(nm(p))} ${G.scores[p]}`).join(', ');
+  const outTxt=R.newlyOut.map(p=>p===ME?`Pasaste de ${LIMIT}.`:`${esc(who(p))} pasó de ${LIMIT}${G.n>2?' y queda afuera':''}.`).join(' ');
   let title, text;
-  const tot=S.players.map(p=>`${p==='me'?'vos':bn(p)} ${S.scores[p]}`).join(', ');
-  const outTxt=R.newlyOut.filter(p=>!(R.over&&R.over!=='afuera'&&S.players.length===2)).map(p=>p==='me'?'Pasaste de '+LIMIT+'.':`${cap(bn(p))} pasó de ${LIMIT}${S.players.length>2?' y queda afuera':''}.`).join(' ');
-  if(R.conga){ title = R.cutter==='me'?'¡Conga! Ganaste la partida':`${cap(bn(R.cutter))} hizo conga`; text='Escalera de siete del mismo palo: la partida termina en el acto.' }
-  else if(R.over==='me'){ title='Ganaste la partida'; text=`${outTxt} Final: ${tot}.` }
-  else if(R.over==='afuera'){ title='Quedaste afuera'; text=`Pasaste de ${LIMIT}. Final: ${tot}.` }
-  else if(R.over){ title = S.players.length===2?'Perdiste la partida':`Ganó ${bn(R.over)}`; text=`${outTxt} Final: ${tot}.` }
-  else if(!R.cutter){ title='Mazo agotado'; text='La mano se anula, nadie suma.' }
-  else { title = R.cutter==='me'?'Cortaste':`${cap(bn(R.cutter))} cortó`; text=`${outTxt} Totales: ${tot}.`.trim() }
-  $('resTitle').textContent=title; $('resText').textContent=text;
+  if(R.conga){ title = R.cutter===ME?'¡Conga! Ganaste la partida':`${who(R.cutter)} hizo conga`; text='Escalera de siete del mismo palo: la partida termina en el acto.' }
+  else if(G.over){ title = G.winner===ME?'Ganaste la partida':(G.n===2?'Perdiste la partida':`Ganó ${who(G.winner)}`); text=`${outTxt} Final: ${tot}.` }
+  else if(R.newlyOut.includes(ME)){ title='Quedaste afuera'; text=`${outTxt} Podés mirar cómo sigue. Totales: ${tot}.` }
+  else if(R.cutter==null){ title='Mazo agotado'; text='La mano se anula, nadie suma.' }
+  else { title = R.cutter===ME?'Cortaste':`${who(R.cutter)} cortó`; text=`${outTxt} Totales: ${tot}.`.trim() }
+  $('resTitle').textContent=title; $('resText').innerHTML=text;
   const hs=$('resHands'); hs.replaceChildren();
-  for(const p of Object.keys(R.res)){
-    const {r,pts}=R.res[p];
-    const row=document.createElement('div'); row.className='row'; row.innerHTML=`<span>${NAME(p)}</span><b>${pts>0?'+':''}${pts}</b>`;
+  for(const p of [ME,...others()]){
+    const r=R.res[p]; if(!r) continue;
+    const row=document.createElement('div'); row.className='row'; row.innerHTML=`<span>${esc(who(p))}</span><b>${r.pts>0?'+':''}${r.pts}</b>`;
     hs.append(row, miniHand(r));
   }
-  $('btnNext').textContent=(R.over||R.conga)?'Jugar otra partida':'Siguiente mano';
+  const canDeal=MODE==='local'||HOST, b=$('btnNext');
+  b.textContent=G.over?'Jugar otra partida':'Siguiente mano';
+  b.disabled=!canDeal;
+  $('resWait').textContent=canDeal?'':`Esperando que ${HOSTNAME||'quien abrió la mesa'} reparta.`;
 }
-
 /* ---------- mano en abanico ---------- */
 let drag=null, suppressClick=false, slotX=[];
 const hand=$('myHand');
 function layoutHand(){
-  const els=S.order.map(id=>myMap.get(id)).filter(Boolean), n=els.length;
+  const els=L.order.map(id=>myMap.get(id)).filter(Boolean), n=els.length;
   if(!n){ slotX=[]; return }
   const W=hand.clientWidth, w=els[0].offsetWidth, h=w*258/168, R=w*4.4;
   let step=7*Math.PI/180;
@@ -483,10 +561,10 @@ function layoutHand(){
     el.style.left=(cx-w/2)+'px'; el.style.top=(cy-h/2)+'px'; el.style.rotate=(a*180/Math.PI).toFixed(2)+'deg';
   });
 }
-if(window.ResizeObserver) new ResizeObserver(()=>{ if(S) layoutHand() }).observe(hand);
+if(window.ResizeObserver) new ResizeObserver(()=>{ if(G) layoutHand() }).observe(hand);
 function overPozo(x,y){ const r=$('pozoSlot').getBoundingClientRect(); const p=14; return x>r.left-p&&x<r.right+p&&y>r.top-p&&y<r.bottom+p }
 hand.addEventListener('pointerdown',e=>{
-  const el=e.target.closest('.card'); if(!el||!S||S.phase==='dealing'||S.phase==='over') return;
+  const el=e.target.closest('.card'); if(!el||!G||!V||V.dealing||G.phase==='over') return;
   if(e.button!==undefined && e.button!==0) return;
   const g=geom(el);
   drag={el, id:+el.dataset.id, x0:e.clientX, y0:e.clientY, gx:e.clientX-(g.left+g.width/2), gy:e.clientY-(g.top+g.height/2), started:false, pid:e.pointerId};
@@ -505,8 +583,8 @@ window.addEventListener('pointermove',e=>{
   el.style.rotate=Math.max(-8,Math.min(8,(e.clientX-drag.x0)/30)).toFixed(1)+'deg';
   // el hueco se abre en la posición más cercana del abanico
   let best=0, bd=Infinity; slotX.forEach((x,i)=>{ const d=Math.abs(x-cx); if(d<bd){bd=d;best=i} });
-  const cur=S.order.indexOf(drag.id);
-  if(cur>=0 && best!==cur){ S.order.splice(cur,1); S.order.splice(best,0,drag.id); layoutHand() }
+  const cur=L.order.indexOf(drag.id);
+  if(cur>=0 && best!==cur){ L.order.splice(cur,1); L.order.splice(best,0,drag.id); layoutHand() }
   $('pozoPile').classList.toggle('drop', canDiscard(drag.id) && overPozo(e.clientX,e.clientY));
 });
 function endDrag(e){
@@ -517,7 +595,7 @@ function endDrag(e){
   const el=d.el;
   if(e.type==='pointerup' && canDiscard(d.id) && overPozo(e.clientX,e.clientY)){
     const g=geom(el); el.classList.remove('dragging');
-    playerDiscard(d.id, false, g);
+    myDiscard(d.id, false, g);
     return;
   }
   el.classList.remove('dragging');
@@ -533,23 +611,188 @@ hand.addEventListener('keydown',e=>{
   if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return;
   const el=e.target.closest('.card'); if(!el) return;
   e.preventDefault();
-  const i=S.order.indexOf(+el.dataset.id), j=i+(e.key==='ArrowLeft'?-1:1);
-  if(j<0||j>=S.order.length) return;
-  [S.order[i],S.order[j]]=[S.order[j],S.order[i]];
+  const i=L.order.indexOf(+el.dataset.id), j=i+(e.key==='ArrowLeft'?-1:1);
+  if(j<0||j>=L.order.length) return;
+  [L.order[i],L.order[j]]=[L.order[j],L.order[i]];
   render(); el.focus();
 });
-window.addEventListener('resize',()=>{ if(S) layoutHand() });
+window.addEventListener('resize',()=>{ if(G) layoutHand() });
 
+/* ---------- en línea (js/online.js, Firebase) ---------- */
+// Cada mesa es un documento conga/mesas/<CÓDIGO> con { seats:[uid|null], host, status, g, rev, n, createdAt }.
+// Escribe la partida quien juega: cada persona su turno, y quien abrió la mesa los turnos de la compu y el reparto.
+let LOBBY_DOCS=[], LOBBY_ERR='', ONLINE_READY=false, FIRST_LIST=false, AUTO_DONE=false;
+const URU_MULTI=URU.modo==='multi';
+async function initOnline(){
+  try{
+    const on=window.UruOnline?await UruOnline.init('conga'):null;
+    if(on){ DB=on.db; USER=on.user; MYID=on.uid }
+  }catch(_){ DB=null }
+  if(DB&&MYID){
+    DB.collection('mesas').where('status','in',['waiting','playing','done']).onSnapshot(s=>{
+      LOBBY_DOCS=s.docs.map(d=>({id:d.id,...d.data()})).filter(d=>Array.isArray(d.seats));
+      if(!FIRST_LIST){ FIRST_LIST=true; autoSala() }
+      renderLobby();
+    },()=>{ LOBBY_ERR='No se pudo leer la lista de mesas.'; renderLobby() });
+  } else if(URU_MULTI) $('aviso').hidden=false;
+  ONLINE_READY=true; renderLobby();
+}
+// Lo que se eligió en el menú principal: partida rápida, sala nueva o un código
+function autoSala(){
+  if(!URU_MULTI||AUTO_DONE||!URU.sala) return;
+  AUTO_DONE=true;
+  if(URU.sala==='nueva') return createTable();
+  if(URU.sala==='rapida'){
+    const open=openTables().sort((a,b)=>(b.seats.length===NPLAYERS)-(a.seats.length===NPLAYERS)||(b.createdAt||0)-(a.createdAt||0));
+    return open.length?joinTable(open[0].id):createTable();
+  }
+  return joinTable(URU.sala);
+}
+const openTables=()=>LOBBY_DOCS.filter(d=>d.status==='waiting'&&!d.seats.includes(MYID)&&d.seats.includes(null)&&Date.now()-(d.createdAt||0)<6*3600e3);
+async function names(ids){
+  const out={}; ids=ids.filter(Boolean);
+  if(USER&&ids.length){ try{ const ps=await USER.profiles(ids); for(const id of ids) out[id]=ps[id]&&ps[id].name||'' }catch(_){} }
+  return out;
+}
+async function renderLobby(){
+  const box=$('online'); if(!box) return;
+  if(!ONLINE_READY){ box.innerHTML='<p class="small">Conectando con las mesas en línea…</p>'; return }
+  if(!DB||!MYID){
+    box.innerHTML = window.UruOnline&&UruOnline.disponible()
+      ? `<p>No se pudo conectar con las mesas en línea. Revisá la conexión y recargá la página.</p>${UruOnline.error()?`<p class="small">Detalle: ${esc(UruOnline.error())}</p>`:''}`
+      : '<p>El modo en línea todavía no está configurado.</p>';
+    return;
+  }
+  // La parte fija se dibuja una sola vez para no borrar lo que se está escribiendo
+  if(!$('onlineList')){
+    box.innerHTML=`
+      <div class="field"><label for="nick">Tu nombre</label><input id="nick" maxlength="20" autocomplete="nickname" placeholder="Cómo te ven los demás" value="${esc(UruOnline.nombre())}"></div>
+      <button class="btn" type="button" id="createBtn"></button>
+      <div class="field"><label for="code">Código de mesa</label><div class="joinrow"><input id="code" maxlength="4" autocomplete="off" placeholder="ABCD"><button class="btn quiet" type="button" id="joinBtn">Unirme</button></div></div>
+      <p class="err" id="lobbyErr" role="alert"></p>
+      <div id="onlineList"></div>`;
+    $('createBtn').onclick=()=>createTable();
+    $('joinBtn').onclick=()=>joinTable($('code').value);
+    $('code').addEventListener('keydown',e=>{ if(e.key==='Enter') joinTable(e.target.value) });
+    $('nick').addEventListener('change',e=>{ e.target.value=UruOnline.setNombre(e.target.value) });
+  }
+  $('createBtn').textContent=`Abrir una mesa de ${NPLAYERS}`;
+  $('lobbyErr').textContent=LOBBY_ERR;
+  const mine=LOBBY_DOCS.filter(d=>d.seats.includes(MYID)&&d.status!=='done'), open=openTables();
+  const N=await names([...new Set([...mine,...open].map(d=>d.host))]);
+  const free=d=>d.seats.filter(x=>!x).length;
+  const li=(d,label,act,btn)=>`<li><span class="code">${esc(d.id)}</span><span class="meta">${label}</span><button class="btn quiet sm" type="button" data-act="${act}" data-code="${esc(d.id)}">${btn}</button></li>`;
+  $('onlineList').innerHTML=
+    (mine.length?`<p class="small">Tus mesas</p><ul class="tables">${mine.map(d=>li(d,`de ${d.seats.length}${d.status==='waiting'?', esperando gente':', jugando'}`,'resume','Seguir')).join('')}</ul>`:'')+
+    `<p class="small">Mesas esperando gente</p>`+
+    (open.length?`<ul class="tables">${open.map(d=>li(d,`de ${d.seats.length}, abrió ${esc(N[d.host]||'alguien')}, ${free(d)} ${free(d)===1?'lugar libre':'lugares libres'}`,'join','Sentarme')).join('')}</ul>`
+      :'<p class="empty">No hay mesas abiertas. Abrí una y pasale el código a tus amigos.</p>');
+}
+function lobbyError(msg){ LOBBY_ERR=msg; const e=$('lobbyErr'); if(e) e.textContent=msg; if(msg) $('onlineBox').open=true }
+function newCode(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=A[Math.floor(Math.random()*A.length)]; return s }
+async function createTable(){
+  if(!DB) return;
+  lobbyError('');
+  const code=newCode(), ref=DB.doc('mesas/'+code);
+  try{
+    const ex=await ref.get(); if(ex.exists) return createTable();
+    const seats=Array.from({length:NPLAYERS},(_,i)=>i===0?MYID:null);
+    await ref.set({seats, host:MYID, status:'waiting', g:null, rev:0, n:NPLAYERS, createdAt:Date.now()});
+    openTable(code);
+  }catch(_){ lobbyError('No se pudo abrir la mesa. Probá de nuevo.') }
+}
+async function joinTable(code){
+  if(!DB) return;
+  lobbyError('');
+  code=(code||'').trim().toUpperCase();
+  if(!/^[A-Z]{4}$/.test(code)) return lobbyError('El código tiene cuatro letras.');
+  const ref=DB.doc('mesas/'+code);
+  try{
+    const lease=await ref.acquire({holder:MYID, ttlMs:4000});
+    if(!lease.acquired) return lobbyError('Alguien se está sentando en esa mesa. Probá en unos segundos.');
+    const s=await ref.get();
+    if(!s.exists) return lobbyError('No encontré esa mesa.');
+    const d=s.data();
+    if(!Array.isArray(d.seats)) return lobbyError('Esa mesa no es de Conga.');
+    if(d.seats.includes(MYID)) return openTable(code);
+    const free=d.seats.indexOf(null);
+    if(free<0||d.status!=='waiting') return lobbyError('Esa mesa ya está completa.');
+    const seats=[...d.seats]; seats[free]=MYID;
+    if(!seats.includes(null)){
+      // Me siento en el último lugar: reparto yo y arranca la partida
+      newGame(seats.length, seats.map(()=>false));
+      await ref.update({seats, status:'playing', g:clone(G), rev:(d.rev||0)+1});
+    } else await ref.update({seats});
+    openTable(code);
+  }catch(_){ lobbyError('No pude sentarte en la mesa. Probá de nuevo.') }
+}
+async function startWithCpu(){
+  const s=await TREF.get(); const d=s.data(); if(!d||d.status!=='waiting') return;
+  newGame(d.seats.length, d.seats.map(x=>!x));
+  await TREF.update({status:'playing', g:clone(G), rev:(d.rev||0)+1});
+}
+async function leaveSeat(){
+  const r=TREF; freshGame();
+  try{ const s=await r.get(); const d=s.data(); if(d&&d.status==='waiting'){ await r.update({seats:d.seats.map(x=>x===MYID?null:x)}) } }catch(_){}
+}
+async function cancelTable(){ const r=TREF; freshGame(); try{ await r.delete() }catch(_){} }
+function leaveTable(){ if(TUNSUB){ TUNSUB(); TUNSUB=null } TREF=null; TCODE=null; LOCALREV=0; $('waiting').hidden=true }
+function openTable(code){
+  leaveTable(); clearTimeout(cpuTimer); SESSION++;
+  MODE='online'; TCODE=code; TREF=DB.doc('mesas/'+code); Q.length=0; G=null; V=null; $('overlay').hidden=true;
+  showWaiting('<h2>Abriendo la mesa…</h2>');
+  TUNSUB=TREF.onSnapshot(async s=>{
+    if(TCODE!==code) return;
+    if(!s.exists){ freshGame(); lobbyError('La mesa se cerró.'); return }
+    const d=s.data();
+    const seat=d.seats.indexOf(MYID);
+    if(seat<0){ freshGame(); lobbyError('Esa mesa ya está completa.'); return }
+    ME=seat; HOST=d.host===MYID;
+    const N=await names(d.seats);
+    let cpuNo=0; const cpus=d.seats.filter(x=>!x).length;
+    SEATNAME=d.seats.map((id,i)=>id?(N[id]||`Jugador ${i+1}`):(cpus===1?'La máquina':`Máquina ${++cpuNo}`));
+    HOSTNAME=d.host===MYID?'vos':(N[d.host]||'quien abrió la mesa');
+    if(d.status==='waiting'){
+      const list=d.seats.map((id,i)=>`<li><span class="meta">${id?esc(id===MYID?'Vos':(N[id]||'Jugador')):'Lugar libre'}</span></li>`).join('');
+      showWaiting(`<h2>Mesa de ${d.seats.length} abierta</h2><p>Pasale este código a tus amigos para que se sienten:</p><div class="bigcode">${esc(code)}</div>
+        <ul class="tables">${list}</ul>
+        <p>${HOST?'La partida empieza sola cuando se llena. Si no querés esperar, los lugares libres los juega la máquina.':'Esperando que se llene la mesa o que quien la abrió empiece.'}</p>
+        <div class="bar">${HOST?'<button class="btn" type="button" data-act="cpustart">Empezar con la máquina en los libres</button><button class="btn quiet" type="button" data-act="cancel">Cerrar la mesa</button>':'<button class="btn quiet" type="button" data-act="leave">Salir de la mesa</button>'}</div>`);
+      return;
+    }
+    $('waiting').hidden=true;
+    if(d.g && (d.rev||0)>LOCALREV){ LOCALREV=d.rev||0; enqueue(clone(d.g)) }
+  },()=>{ freshGame(); lobbyError('Se perdió la conexión con la mesa.') });
+}
+function showWaiting(html){ $('waitBody').innerHTML=html; $('waiting').hidden=false }
+// Las jugadas se guardan en orden, una por vez, para que los demás vean cada una animada
+let pushChain=Promise.resolve();
+function push(){
+  if(!TREF||!G) return;
+  const ref=TREF, body={g:clone(G), rev:++LOCALREV, status:G.over?'done':'playing'};
+  pushChain=pushChain.then(()=>ref.update(body)).catch(()=>{ L.tip='No se pudo guardar la jugada. Revisá la conexión.'; render() });
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.dataset.act;
+  if(a==='join') joinTable(b.dataset.code);
+  else if(a==='resume') openTable(b.dataset.code);
+  else if(a==='cpustart') startWithCpu();
+  else if(a==='cancel') cancelTable();
+  else if(a==='leave') leaveSeat();
+});
 /* ---------- eventos ---------- */
-$('deckBtn').onclick=()=>playerDraw('mazo');
-$('pozoSlot').addEventListener('click',e=>{ const el=e.target.closest('.card'); if(el&&!el.classList.contains('under')) playerDraw('pozo') });
-$('btnDiscard').onclick=()=>playerDiscard(S.sel,false);
-$('btnCut').onclick=()=>playerDiscard(S.sel,true);
-$('btnSuit').onclick=()=>sortOrder('palo');
-document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>freshGame(+b.dataset.n));
-$('btnNext').onclick=()=>{ const R=S.result; S.result=null; $('overlay').hidden=true; if(R.over||R.conga) freshGame(); else deal() };
+$('deckBtn').onclick=()=>myDraw('mazo');
+$('pozoSlot').addEventListener('click',e=>{ const el=e.target.closest('.card'); if(el&&!el.classList.contains('under')) myDraw('pozo') });
+$('btnDiscard').onclick=()=>myDiscard(L.sel,false);
+$('btnCut').onclick=()=>myDiscard(L.sel,true);
+$('btnSuit').onclick=()=>sortOrder();
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{ freshGame(+b.dataset.n); renderLobby() });
+$('btnNext').onclick=()=>nextRound();
 
 /* ---------- arranque ---------- */
-if(URU.modo==='multi') $('aviso').hidden=false;
+// Desde Multijugador en el menú se abre directo la parte en línea; mientras tanto se juega contra la compu
 freshGame();
+initOnline();
+if(URU_MULTI) $('onlineBox').open=true;
 })();

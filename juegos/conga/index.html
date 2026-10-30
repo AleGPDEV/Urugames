@@ -16,10 +16,10 @@
     <a href="../../index.html" class="volver">← Volver al menú</a>
     <p class="modo" id="modo"></p>
   </header>
-  <p class="aviso" id="aviso" hidden>El multijugador en línea todavía no está disponible: por ahora jugás contra la compu.</p>
+  <p class="aviso" id="aviso" hidden>El modo en línea todavía no está configurado: por ahora jugás contra la compu.</p>
   <main class="table">
     <section class="opp" aria-label="Rivales">
-      <div class="top"><span class="round" id="roundInfo">Mano 1</span></div>
+      <div class="top"><span class="table-info" id="tableInfo" hidden></span><span class="round" id="roundInfo">Mano 1</span></div>
       <div class="opps" id="opps"></div>
     </section>
 
@@ -62,12 +62,17 @@
         <li>En tu turno levantás del mazo o del pozo y tirás una al pozo. La que levantaste del pozo no la podés tirar en el mismo turno.</li>
         <li>Se ligan piernas (3 o 4 del mismo número) y escaleras (3 o más seguidas del mismo palo). El comodín reemplaza cualquier carta.</li>
         <li>Cortás al tirar si lo que te queda suelto suma 5 o menos. Cortar con todo ligado vale −10.</li>
-        <li>Cada uno se anota lo que le quedó suelto (el comodín suelto vale 50). El que pasa de 100, pierde.</li>
+        <li>Cada uno se anota lo que le quedó suelto (el comodín suelto vale 50). El que pasa de 100 pierde; de a tres, queda afuera y gana el último que queda.</li>
         <li>Cortar con una escalera de 7 del mismo palo es conga y gana la partida.</li>
       </ul>
     </details>
+    <details class="online" id="onlineBox">
+      <summary>Jugar en línea con amigos</summary>
+      <p class="small">Abrí una mesa y pasale el código a tus amigos, o sentate en una que esté esperando. Los lugares que nadie ocupe los juega la máquina.</p>
+      <div id="online"></div>
+    </details>
     <div class="newgame">
-      <span class="ng-label">Empezar otra partida</span>
+      <span class="ng-label">Partida contra la compu</span>
       <div class="seg" id="seg" role="group" aria-label="Cantidad de jugadores">
         <button type="button" data-n="2" aria-pressed="false">2 jugadores</button>
         <button type="button" data-n="3" aria-pressed="false">3 jugadores</button>
@@ -82,11 +87,18 @@
     <p id="resText"></p>
     <div class="res" id="resHands"></div>
     <div class="bar"><button class="btn" id="btnNext" type="button">Siguiente mano</button></div>
+    <p class="wait" id="resWait"></p>
   </div>
+</div>
+
+<div class="overlay" id="waiting" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-label="Mesa en línea" id="waitBody"></div>
 </div>
 
   <script src="../../js/juegos.js"></script>
   <script src="../../js/juego-base.js"></script>
+  <script src="../../js/firebase-config.js"></script>
+  <script src="../../js/online.js"></script>
   <script src="conga.js"></script>
 </body>
 </html>

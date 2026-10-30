@@ -40,8 +40,8 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
 - Todavía no usa la dificultad del menú: la compu saca al azar.
 
-### Conga (`juegos/conga/`) · jugable
-- Vos contra 1 o 2 máquinas (2 o 3 jugadores). Se elige desde los botones de abajo de la planilla y queda guardado en `localStorage` (clave `urugames-conga`).
+### Conga (`juegos/conga/`) · jugable, también en línea
+- 2 o 3 jugadores, contra la compu o con amigos en línea. Contra la compu se elige con los botones de abajo de la planilla y queda guardado en `localStorage` (clave `urugames-conga`).
 - Baraja de 50 cartas: del 1 al 12 de cada palo y 2 comodines. Se reparten 7.
 - Reglas implementadas:
   - Piernas (3 o 4 del mismo número) y escaleras (3 o más seguidas del mismo palo). El comodín reemplaza cualquier carta.
@@ -58,9 +58,21 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
   - Fácil: la compu solo levanta del pozo si le sirve para cortar, y a veces tira cualquier carta.
   - Normal: juega por heurística (puntos sueltos y cartas que casi forman jugada).
   - Difícil: igual que Normal, y además evita tirar cartas parecidas a las que el jugador levantó del pozo.
-- Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+- **En línea (Firebase):** usa `js/online.js`, igual que el Truco.
+  - Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa.
+  - En la página, el desplegable "Jugar en línea con amigos" tiene tu nombre, abrir mesa (de 2 o 3, según lo elegido abajo), unirse con código y la lista de mesas.
+  - Cada mesa es `conga/mesas/<CÓDIGO>` con `{ seats, host, status, g, rev, n, createdAt }`. `g` es la partida entera.
+  - Escribe la partida quien juega: cada persona su turno, y quien abrió la mesa juega los lugares de la compu y reparte cada mano.
+  - Cada jugada se guarda como un evento (`g.ev`: reparto, levantar o tirar) y las demás pantallas la animan igual que la propia.
+  - Los lugares libres los puede jugar la máquina ("Empezar con la máquina en los libres").
+  - Con 3, el que pasa de 100 queda afuera y sigue mirando la partida.
+  - Probado con dos pantallas simuladas (mesa de 2 y mesa de 3 con la máquina), incluido el corte y la mano siguiente.
+- **Resultado:** al terminar la partida emite `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, como Truco y Escoba.
+- **Pendiente en línea:**
+  - Igual que en el Truco, las cartas de todos viajan en el mismo documento: alguien con conocimientos podría ver las ajenas o hacer trampa. Para competir con fichas, el reparto y la validación tienen que pasar a un servidor.
+  - Si alguien se va en medio de la partida, la mesa queda esperando su turno. Si se va quien abrió la mesa, se frena la compu y no se reparte la mano siguiente. Falta un tiempo límite por turno o que otro tome su lugar.
 - Diseño propio, distinto al del lobby (mesa de madera). Tiene su propio `conga.css` y no carga `css/lobby.css`.
-- No reporta resultado ni descuenta fichas: queda para cuando exista el módulo común.
+- No descuenta fichas: queda para cuando exista el módulo común.
 
 ### Chancho va (`juegos/chanchova/`) · jugable
 - Vos contra 3 rivales de la compu (Tito, La Negra y Pocho), con los 1, 7, 10 y 12 de los cuatro palos: 16 cartas, cuatro por jugador.
@@ -145,12 +157,12 @@ Es el núcleo de la idea competitiva. Pensado así:
 - Cada juego debería avisar al terminar con un resultado común, por ejemplo `{ juego, resultado: 'gano'|'perdio'|'empate', puntaje, tiempo }`, para alimentar el ranking.
 - Las fichas y el ranking **tienen que estar en un servidor**. Si se guardan solo en el navegador, alcanza con borrar los datos o cambiar de dispositivo para tener fichas nuevas.
 
-### Multijugador en línea (empezado: Truco)
+### Multijugador en línea (empezado: Truco y Conga)
 - Backend elegido: **Firebase** (Realtime Database + inicio de sesión anónimo).
 - `js/firebase-config.js`: datos del proyecto. Si está vacío, los juegos avisan que el modo en línea no está configurado y se juega contra la compu.
 - `js/online.js`: módulo común. `UruOnline.init('<juego>')` devuelve `{ db, user, uid }`; `db.doc('mesas/ABCD')` y `db.collection('mesas')` guardan cada mesa como JSON en `<juego>/mesas/<código>`. El nombre del jugador se guarda en `perfiles/<uid>`.
 - `database.rules.json`: reglas de la base. Hay que copiarlas en la consola de Firebase (Realtime Database → Reglas), porque el modo de prueba vence a los 30 días.
-- Falta: Conga, Culo sucio, Chancho va, Roba montón y Memoria.
+- Falta: Culo sucio, Chancho va, Roba montón y Memoria.
 
 ### Lobby
 Estos elementos están en la pantalla pero todavía no hacen nada:
@@ -163,7 +175,7 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 1. Definir el backend: usuarios, fichas diarias y ranking.
 2. Armar un módulo común en `js/` para consumir una ficha al entrar y reportar el resultado al salir, y conectarlo primero con Memoria.
 3. Programar los juegos que faltan, usando `img/baraja.jpg` y `window.URUGAMES`.
-   Para el ranking, Truco y Escoba ya emiten `urugames:resultado`; conviene que los demás juegos hagan lo mismo.
+   Para el ranking, Truco, Escoba y Conga ya emiten `urugames:resultado`; conviene que los demás juegos hagan lo mismo.
 4. Multijugador en línea.
 
 ## Historial de cambios
@@ -180,3 +192,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Truco uruguayo** completo: 2, 4 o 6 jugadores, pico a pico, flor y contraflor, mesa en ronda, animaciones, reparto automático y audios de los cantos |
 | 29/10/2026 | Juego **Escoba de 15** completo (vos contra la compu, a 15 puntos, pista y dificultad del menú). En `js/juegos.js` pasa a 2 jugadores |
 | 29/10/2026 | **Multijugador en línea** con Firebase: módulo común `js/online.js`, reglas `database.rules.json` y Truco conectado (crear sala, partida rápida y unirse con código desde el menú) |
+| 29/10/2026 | **Conga en línea** con Firebase: mesas de 2 o 3 (crear sala, partida rápida y unirse con código), jugadas animadas en todas las pantallas, lugares libres para la máquina y evento `urugames:resultado` |
