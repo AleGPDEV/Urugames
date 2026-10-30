@@ -1,0 +1,92 @@
+/* Pantalla previa de "Jugar solo" (js/previa.js). Usa los colores y letras del menú en todos los juegos,
+   con sus propias variables para que no la cambie el diseño de cada juego.
+   Layout: el paño verde del menú ocupa toda la pantalla; al centro, una carta marfil con el juego,
+   la dificultad en tres fichas (los puntos de oro dicen el nivel) y las opciones propias, todo alineado a la izquierda. */
+@import url('https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap');
+
+.previa {
+  --pv-felt: #0E3B2C; --pv-felt-dark: #0A2E22; --pv-felt-light: #164D3A; --pv-line: #2A5A47;
+  --pv-ivory: #F4EEDC; --pv-card: #F6F0E1; --pv-chip: #EFE6CF; --pv-chip-line: #C9BD9E;
+  --pv-ink: #1E2A24; --pv-ink-soft: #4A5A52; --pv-gold: #D9A441;
+  --pv-oros: #A8761C; --pv-copas: #B23A31; --pv-espadas: #2F5E9E; --pv-bastos: #2E6E47;
+  --pv-display: 'Alegreya SC', Georgia, 'Times New Roman', serif;
+  --pv-body: 'Work Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  position: fixed; inset: 0; z-index: 1000; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--pv-felt);
+  background-image: radial-gradient(ellipse 80% 60% at 50% 30%, var(--pv-felt-light), var(--pv-felt) 60%, var(--pv-felt-dark));
+  color: var(--pv-ivory); font-family: var(--pv-body); font-size: 16px; line-height: 1.45;
+  color-scheme: dark;
+}
+/* "hidden" tiene que ocultar siempre, también los botones de cada juego que la previa oculta o muestra */
+[hidden] { display: none !important; }
+html.previa-abierta, html.previa-abierta body { overflow: hidden; }
+.previa *, .previa *::before, .previa *::after { box-sizing: border-box; }
+
+.pv-marco {
+  max-width: 640px; margin: 0 auto; min-height: 100%;
+  padding-top: max(20px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+.pv-volver {
+  align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
+  border-radius: 999px; background: var(--pv-felt-light); color: var(--pv-ivory); text-decoration: none; font-weight: 600;
+}
+.pv-volver:hover { color: #fff; background: var(--pv-line); }
+
+.pv-carta {
+  background: var(--pv-card); color: var(--pv-ink); border-radius: 16px;
+  padding: clamp(18px, 4vw, 28px); display: flex; flex-direction: column; gap: 22px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 18px 40px rgba(4, 20, 14, .45);
+}
+.pv-cab { display: flex; align-items: center; gap: 14px; }
+.pv-palo { flex: none; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px; background: var(--pv-chip); }
+.pv-oros { color: var(--pv-oros); } .pv-copas { color: var(--pv-copas); } .pv-espadas { color: var(--pv-espadas); } .pv-bastos { color: var(--pv-bastos); }
+.pv-cab h2 { margin: 0; font-family: var(--pv-display); font-weight: 700; font-size: clamp(30px, 7vw, 40px); line-height: 1; color: var(--pv-ink); text-wrap: balance; }
+.pv-sub { margin: 4px 0 0; color: var(--pv-ink-soft); font-size: 15px; }
+
+.pv-grupo { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pv-grupo[hidden] { display: none; }
+.pv-grupo legend { padding: 0; margin-bottom: 8px; font-weight: 600; font-size: 15px; color: var(--pv-ink); }
+.pv-nota { margin: 0; font-size: 14px; color: var(--pv-ink-soft); max-width: 60ch; }
+.pv-nota:empty { display: none; }
+
+/* dificultad: tres fichas; los puntos de oro marcan el nivel */
+.pv-difs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .pv-difs { grid-template-columns: minmax(0, 1fr); } }
+.pv-dif {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+  min-height: 44px; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+  font: inherit; color: var(--pv-ink); background: var(--pv-chip); border: 1.5px solid var(--pv-chip-line);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.pv-dif:hover { border-color: var(--pv-ink-soft); }
+.pv-dif-cab { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; }
+.pv-dif-txt { font-size: 14px; line-height: 1.4; color: var(--pv-ink-soft); }
+.pv-pips { display: inline-flex; gap: 3px; }
+.pv-pips i { width: 10px; height: 10px; border-radius: 50%; background: var(--pv-oros); box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+.pv-dif[aria-checked="true"] { background: var(--pv-felt); border-color: var(--pv-felt); color: var(--pv-ivory); }
+.pv-dif[aria-checked="true"] .pv-dif-txt { color: #CFE0D6; }
+.pv-dif[aria-checked="true"] .pv-pips i { background: var(--pv-gold); }
+
+/* opciones del juego */
+.pv-seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.pv-seg button {
+  min-width: 56px; min-height: 44px; padding: 0 16px; border-radius: 10px; cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--pv-ink); background: transparent; border: 1.5px solid var(--pv-chip-line);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.pv-seg button:hover { background: var(--pv-chip); }
+.pv-seg button[aria-checked="true"] { background: var(--pv-felt); border-color: var(--pv-felt); color: var(--pv-ivory); }
+
+.pv-acciones { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
+.pv-empezar, .pv-seguir { min-height: 48px; padding: 0 24px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 600; font-size: 17px; }
+.pv-empezar { flex: 1 1 220px; background: var(--pv-felt); color: var(--pv-ivory); border: 0; }
+.pv-empezar:hover { background: var(--pv-felt-light); }
+.pv-seguir { background: transparent; color: var(--pv-ink); border: 1.5px solid var(--pv-chip-line); }
+.pv-seguir:hover { background: var(--pv-chip); }
+
+.previa :focus-visible { outline: 3px solid var(--pv-gold); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .pv-dif, .pv-seg button { transition: none; } }

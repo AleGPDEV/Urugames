@@ -15,7 +15,7 @@ const DIF = {
   dificil: { first: [500, 1300],  react: [280, 850],  feint: .38, fall: .06 }
 };
 const URU = window.URUGAMES || {};
-const cfg = DIF[URU.dificultad] || DIF.normal;
+let cfg = DIF[URU.dificultad] || DIF.normal;
 
 let feints = true, players, phase, selected, order, timers = [], pending = null, shout = null, lastLoser = null, arrived = -1, message = "";
 
@@ -194,4 +194,26 @@ $("reset").addEventListener("click", newGame);
 $("feint").addEventListener("click", e => { feints = !feints; e.currentTarget.setAttribute("aria-pressed", feints); });
 
 if (URU.modo === "multi") $("aviso").hidden = false;
-newGame();
+
+// "Jugar solo": la pantalla previa común (js/previa.js) elige dificultad y amagues antes de repartir
+const previa = window.UruPrevia ? UruPrevia.crear({
+  juego: "chanchova",
+  dificultad: {
+    facil: "Los rivales tardan en golpear la mesa y amagan poco.",
+    normal: "Reaccionan rápido y de vez en cuando amagan.",
+    dificil: "Golpean enseguida, amagan seguido y casi nunca caen en un amague."
+  },
+  opciones: [
+    { id: "amagues", nombre: "Amagues", valores: [[true, "Sí"], [false, "No"]], defecto: true,
+      nota: c => c.amagues ? "Los rivales pueden hacer que golpean sin tener chancho." : "" }
+  ],
+  empezar: c => {
+    cfg = DIF[c.dificultad] || DIF.normal;
+    feints = c.amagues; $("feint").setAttribute("aria-pressed", feints);
+    newGame();
+  }
+}) : null;
+if (previa && previa.iniciar()) {
+  $("feint").hidden = true;
+  $("optsBtn").hidden = false; $("optsBtn").onclick = () => previa.mostrar();
+} else newGame();

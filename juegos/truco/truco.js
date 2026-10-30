@@ -281,8 +281,8 @@ function mazo(s){say(s,'Me voy al mazo');endHand(1-team(s));step();}
 
 /* ---------- máquina ---------- */
 // Dificultad del menú: fácil se equivoca y canta peor; difícil no tira cartas al azar y blufea menos
-const DIF=(window.URUGAMES&&window.URUGAMES.dificultad)||'normal';
-const DIFT={facil:.1,normal:0,dificil:-.04}[DIF]||0;
+let DIF=(window.URUGAMES&&window.URUGAMES.dificultad)||'normal';
+let DIFT={facil:.1,normal:0,dificil:-.04}[DIF]||0;
 function cpuStrength(s){
   const cur=G.table[G.baza],mine=cur.find(p=>p.s===s),pool=G.hands[s].map(score); if(mine)pool.push(score(mine.c));
   pool.sort((a,b)=>b-a); const v=i=>pool[i]??0, T=team(s);
@@ -546,7 +546,11 @@ function startLocal(){
   leaveTable(); MODE='local'; ME=0; HOST=true; SEATNAME=localNames(PLAYERS);
   newGame(TARGET,PLAYERS,null,PICO,RULES); show('game'); step();
 }
-function toLobby(){ leaveTable(); MODE='local'; G=null; show('lobby'); renderLobby(); }
+function toLobby(){
+  // Jugando solo, "Volver al inicio" vuelve a la pantalla previa común sin perder la partida
+  if(SOLO_PREVIA&&MODE==='local'){ previa.mostrar(); return; }
+  leaveTable(); MODE='local'; G=null; show('lobby'); renderLobby();
+}
 function leaveTable(){ if(mesas&&mesas.enMesa()) mesas.salir(); TCODE=null; tick++; }
 
 /* ---------- en línea: js/mesas.js, igual para todos los juegos ---------- */
@@ -667,4 +671,36 @@ function closeZoom(){const z=$('zoom');if(z&&!z.hidden){z.hidden=true;}}
     if(solo)solo.hidden=true;
   }else if(online)online.hidden=true;
 })();
-applyPref(); show('lobby'); renderLobby(); initOnline();
+applyPref();
+// "Jugar solo": la pantalla previa común (js/previa.js) elige dificultad, jugadores, puntos y reglas de la mesa, y arranca directo.
+// "Volver al inicio" durante la partida la vuelve a abrir.
+const previa=window.UruPrevia?UruPrevia.crear({
+  juego:'truco',
+  dificultad:{
+    facil:'A veces tira cualquier carta y canta peor.',
+    normal:'Juega según sus cartas y de vez en cuando se tira un farol.',
+    dificil:'No tira cartas al azar y elige mejor cuándo cantar.'
+  },
+  opciones:[
+    {id:'jugadores',nombre:'Jugadores',valores:[[2,'2'],[4,'4, de a dos'],[6,'6, de a tres']],defecto:PLAYERS,
+      nota:c=>c.jugadores>2?'Se juega en equipos: la compu juega por tus compañeros y por tus rivales.':''},
+    {id:'pico',nombre:'Pico a pico',valores:[['ambos','Con los dos en malas'],['alguno','Con alguno en malas'],['no','No']],defecto:PICO,visible:c=>c.jugadores===6,
+      nota:c=>c.pico==='no'?'':'Mientras tanto se alterna una mano redonda con una de picos, uno contra uno.'},
+    {id:'partida',nombre:'Partida a',valores:[[30,'30 puntos'],[40,'40 puntos']],defecto:TARGET},
+    {id:'flor',nombre:'Flor',valores:[[true,'Sí'],[false,'No']],defecto:RULES.flor},
+    {id:'contraflor',nombre:'Contraflor y con flor envido',valores:[[true,'Sí'],[false,'No']],defecto:RULES.contraflor,visible:c=>c.flor,
+      nota:c=>c.contraflor?'':'Si los dos tienen flor, se comparan al final de la mano.'},
+    {id:'envidoRep',nombre:'Envidos',valores:[[true,'Envido-envido y real-real'],[false,'Uno de cada']],defecto:RULES.envidoRep}
+  ],
+  empezar:c=>{
+    DIF=c.dificultad; DIFT={facil:.1,normal:0,dificil:-.04}[DIF]||0;
+    PLAYERS=c.jugadores; TARGET=c.partida; PICO=c.pico;
+    RULES={flor:c.flor,contraflor:c.flor&&c.contraflor,envidoRep:c.envidoRep};
+    try{localStorage.setItem('truco.jugadores',String(PLAYERS));localStorage.setItem('truco.puntos',String(TARGET));localStorage.setItem('truco.pico',PICO);localStorage.setItem('truco.reglas',JSON.stringify(RULES));}catch(e){}
+    startLocal();
+  }
+}):null;
+const SOLO_PREVIA=!!previa&&!URU_MULTI;
+if(!SOLO_PREVIA) show('lobby');
+renderLobby(); initOnline();
+if(SOLO_PREVIA){ $('lobby').hidden=true; previa.iniciar(); }

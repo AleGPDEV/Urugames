@@ -162,4 +162,19 @@ $("newg").addEventListener("click",newGame);
 $("nr").addEventListener("change",newGame);
 $("deck").addEventListener("change",newGame);
 let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>S&&render(),120)});
-newGame();
+
+// "Jugar solo": la pantalla previa común (js/previa.js). La compu saca al azar, así que no hay dificultad.
+const previa=window.UruPrevia?UruPrevia.crear({
+  juego:"culosucio",
+  dificultad:null,
+  opciones:[
+    {id:"rivales",nombre:"Rivales",valores:[[1,"1"],[2,"2"],[3,"3"]],defecto:3},
+    {id:"mazo",nombre:"Mazo",valores:[[40,"40 cartas"],[48,"48 cartas"]],defecto:40,
+      nota:c=>c.mazo===48?"Con ochos y nueves: la partida dura más.":"Sin ochos ni nueves, como se juega casi siempre."}
+  ],
+  empezar:c=>{$("nr").value=String(c.rivales);$("deck").value=String(c.mazo);newGame()}
+}):null;
+if(previa&&previa.iniciar()){
+  $("nr").hidden=true;$("deck").hidden=true;$("newg").textContent="Repartir de nuevo";
+  $("optsBtn").hidden=false;$("optsBtn").onclick=()=>previa.mostrar();
+}else newGame();

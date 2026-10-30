@@ -10,7 +10,7 @@ const val=c=>c.s==='j'?50:c.n;
 const cname=c=>c.s==='j'?'comodín':`${c.n} de ${SUIT_NAME[c.s]}`;
 const sleep=ms=>new Promise(r=>setTimeout(r, REDUCE?Math.min(ms,80):ms));
 const URU=window.URUGAMES||{};
-const DIF=['facil','normal','dificil'].includes(URU.dificultad)?URU.dificultad:'normal';
+let DIF=['facil','normal','dificil'].includes(URU.dificultad)?URU.dificultad:'normal';
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
@@ -651,7 +651,23 @@ $('btnNext').onclick=()=>nextRound();
 
 /* ---------- arranque ---------- */
 // Desde Multijugador en el menú se abre directo la parte en línea; mientras tanto se juega contra la compu
-freshGame();
+// "Jugar solo": la pantalla previa común (js/previa.js) elige dificultad y jugadores antes de repartir
+const previa=window.UruPrevia?UruPrevia.crear({
+  juego:'conga',
+  dificultad:{
+    facil:'Levanta del pozo solo si le sirve para cortar, y a veces tira cualquier carta.',
+    normal:'Junta lo que casi forma jugada y tira lo que más suma.',
+    dificil:'Además no te tira cartas parecidas a las que levantaste del pozo.'
+  },
+  opciones:[
+    {id:'jugadores',nombre:'Jugadores',valores:[[2,'2, vos y la compu'],[3,'3, vos y dos compus']],defecto:NPLAYERS,
+      nota:c=>c.jugadores===3?'El que pasa de 100 queda afuera; gana el último que queda.':'El que pasa de 100 pierde.'}
+  ],
+  empezar:c=>{ DIF=c.dificultad; freshGame(c.jugadores) }
+}):null;
+if(URU_MULTI || !previa) freshGame();
+else { previa.iniciar(); $('btnOpciones').hidden=false; document.querySelector('.newgame').hidden=true }
+$('btnOpciones').onclick=()=>previa&&previa.mostrar();
 if(mesas) mesas.iniciar().then(ok=>{ if(!ok && URU_MULTI && !(window.UruOnline&&UruOnline.disponible())) $('aviso').hidden=false });
 else if(URU_MULTI) $('aviso').hidden=false;
 if(URU_MULTI) $('onlineBox').open=true;

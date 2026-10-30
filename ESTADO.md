@@ -12,10 +12,30 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 
 ### Lobby (`index.html`, `css/lobby.css`, `js/lobby.js`, `js/juegos.js`)
 - Menú principal con la grilla de juegos, generada desde `js/juegos.js`.
-- Selector de modo: **Individual** (con dificultad Fácil, Normal o Difícil) y **Multijugador** (partida rápida, crear sala o unirse con código).
-- El botón Jugar abre `juegos/<id>/index.html` con parámetros en la URL. La tabla completa está en el README.
-- El modo, la dificultad y el juego elegido se recuerdan en `localStorage` (clave `urugames-lobby`).
+- Cada juego tiene **Jugar solo**, **Reglas**, **Crear mesa** y **Ver mesas** (estas dos solo en los juegos con `online: true` en `js/juegos.js`; en los demás dicen "Pronto").
+- *Jugar solo* abre `juegos/<id>/index.html?modo=solo`. *Crear mesa* agrega `&modo=multi&sala=nueva` y *Ver mesas* `?modo=multi`.
 - `js/juego-base.js` lee los parámetros y los deja en `window.URUGAMES = { id, modo, dificultad, sala }`.
+
+### Pantalla previa de "Jugar solo" (`js/previa.js`, `css/previa.css`)
+- **Todos los juegos arrancan igual:** antes de repartir aparece la misma pantalla, con los colores y letras del menú (aunque el juego tenga otro diseño).
+- Muestra el juego, la **dificultad** en tres fichas (Fácil, Normal, Difícil, con uno a tres puntos de oro) y una línea que dice qué cambia en ese juego, las **opciones propias** del juego y el botón **Empezar partida**.
+- Recuerda lo último elegido en cada juego (`localStorage`, clave `urugames-previa-<id>`). Si se llega con `?dificultad=` en la URL, esa manda.
+- Durante la partida, el botón **Cambiar opciones** (en el Truco, **Volver al inicio**) vuelve a abrirla, con **Seguir con la partida** para cerrarla sin perder nada (también con Escape).
+- Desde Multijugador no aparece.
+- Uso: `UruPrevia.crear({ juego, dificultad: {facil, normal, dificil} | null, opciones: [...], empezar: cfg => {} }).iniciar()`. El comentario de arriba de `js/previa.js` explica cada campo.
+- Opciones de cada juego:
+
+| Juego | Dificultad | Opciones |
+|---|---|---|
+| Truco | Sí | Jugadores (2, 4 o 6), Pico a pico (solo con 6: con los dos o con alguno en malas, o no), Partida a 30 o 40, y las reglas de la mesa: Flor, Contraflor y con flor envido, Envidos |
+| Conga | Sí | Jugadores (2 o 3) |
+| Escoba | Sí | — |
+| Culo sucio | No (la compu saca al azar) | Rivales (1 a 3), Mazo (40 o 48) |
+| Chancho va | Sí | Amagues (sí o no) |
+| Roba montón | Sí | Rivales (1 a 3) |
+| Memoria | Sí (cuánto se acuerda la compu) | Rivales (ninguno a 3), contra la compu o amigos en el mismo dispositivo, Parejas (6, 8 o 12) |
+
+- Los menús desplegables que tenían algunos juegos arriba de la mesa (rivales, mazo, parejas, amagues) quedan ocultos al jugar solo, porque ahora se eligen en la pantalla previa.
 
 ### Mazo (`img/baraja.jpg`)
 - Imagen con las 48 cartas y el dorso, ordenada en una grilla de 12 columnas × 5 filas:
@@ -28,9 +48,8 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 ### Memoria (`juegos/memoria/`) · jugable
 - Modos: Solo, vs 1, vs 2 o vs 3, contra la compu o con amigos por turnos en el mismo dispositivo.
 - Toma la configuración del lobby:
-  - Individual: juega contra la compu, y la dificultad define las parejas (Fácil 6, Normal 8, Difícil 12).
+  - Individual: rivales, contra quién y parejas se eligen en la pantalla previa. La dificultad define cuánto se acuerda la compu de cada carta que vio (Fácil 50 %, Normal 80 %, Difícil 95 %).
   - Multijugador: queda "con amigos" en local y muestra un aviso de que el modo en línea no existe todavía.
-- La compu recuerda cada carta vista con un 80 % de probabilidad.
 - Cuenta parejas, jugadas y tiempo, y al final declara ganador o empate.
 
 ### Culo sucio (`juegos/culosucio/`) · jugable
@@ -54,7 +73,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Mano en abanico que se ordena arrastrando las cartas (o con las flechas del teclado). Para tirar, se toca una carta y se aprieta Tirar, o se suelta sobre el pozo.
 - Animaciones de reparto de a una carta, de levantar del mazo o del pozo y de tirar. Se saltean si el sistema pide reducir movimiento.
 - Planilla en hoja de cuadernola con el total acumulado por mano.
-- Usa la dificultad del menú:
+- Usa la dificultad de la pantalla previa:
   - Fácil: la compu solo levanta del pozo si le sirve para cortar, y a veces tira cualquier carta.
   - Normal: juega por heurística (puntos sueltos y cartas que casi forman jugada).
   - Difícil: igual que Normal, y además evita tirar cartas parecidas a las que el jugador levantó del pozo.
@@ -79,7 +98,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Cada vuelta elegís una carta (tocándola) y todos pasan a la izquierda al mismo tiempo. Tocar dos veces la misma carta también la pasa.
 - Botón grande **¡CHANCHO!** para golpear la mesa. El último en golpear se lleva una letra; golpear sin cuatro iguales también cuesta letra. Quien completa CHANCHO pierde.
 - **Amagues**: después de algunas pasadas un rival grita "¡CHAN…!" y su recuadro se sacude igual que cuando golpea de verdad. Si era amague y tocás la mesa, te llevás letra. Los otros rivales también pueden caer. Se apaga con el botón "Amagues".
-- Usa la dificultad del menú: cambia qué tan rápido golpean los rivales, cuánto amagan y qué tan seguido caen en amagues ajenos (tabla `DIF` en `chanchova.js`).
+- Usa la dificultad de la pantalla previa: cambia qué tan rápido golpean los rivales, cuánto amagan y qué tan seguido caen en amagues ajenos (tabla `DIF` en `chanchova.js`).
 - La compu se queda con el número que más tiene y pasa del que menos tiene, con un 12 % de error.
 - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
 
@@ -90,7 +109,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Mesa en anillo con flechas del sentido del turno. El centro es grande y achica las cartas solo cuando se juntan muchas.
 - Animaciones con la Web Animations API: reparto desde el mazo, cartas que vuelan al centro o al montón y montones robados que viajan al que los roba. Respeta `prefers-reduced-motion`.
 - Cada carta de tu mano muestra antes de jugarla qué va a pasar (Robás, Levantás, Sumás, Al centro).
-- **Usa la dificultad del menú**: Fácil juega casi al azar, Normal elige la jugada que más cartas le da y Difícil además cuida su montón según las cartas que ya salieron.
+- **Usa la dificultad de la pantalla previa**: Fácil juega casi al azar, Normal elige la jugada que más cartas le da y Difícil además cuida su montón según las cartas que ya salieron.
 - Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
 
 ### Truco uruguayo (`juegos/truco/`) · jugable
@@ -130,7 +149,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
   - Muestra también las reglas de la mesa en juego.
 - **Celular acostado:** todo entra en una pantalla, con la mesa a la izquierda y los puntos y botones a la derecha. Las posiciones de los asientos cambian para esa vista.
 - **Configuración del lobby:**
-  - Toma `window.URUGAMES`. La dificultad cambia a la compu: en Fácil tira al azar a veces y canta peor; en Difícil arriesga menos.
+  - Jugando solo, la dificultad, los jugadores, el pico a pico, los puntos y las reglas de la mesa se eligen en la pantalla previa; "Volver al inicio" la vuelve a abrir. El panel "Opciones" de la partida (volumen, velocidad, etc.) sigue igual. La dificultad cambia a la compu: en Fácil tira al azar a veces y canta peor; en Difícil arriesga menos.
   - **En línea (Firebase):** usa `js/online.js` y las mesas comunes de `js/mesas.js`. Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa. En la página del Truco está el recuadro "Con amigos en línea" con tu nombre, el código y la lista de mesas. Los lugares libres los puede jugar la máquina. Probado con dos jugadores simulados en una partida completa.
 - **Resultado:** al terminar la partida emite el evento `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, pensado para el ranking.
 - **Probado** con 1000 partidas simuladas (todas las combinaciones de reglas, con 2, 4 y 6 jugadores) sin trabarse y respetando cada regla elegida.
@@ -151,7 +170,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - Botón **Pista**: marca en verde la mejor levantada, o dice qué carta conviene tirar.
 - Las cartas que levanta la compu se marcan antes de llevárselas.
 - Planilla al final de cada mano con escobas, cartas, oros, sietes y 7 de oros.
-- Usa la dificultad del menú:
+- Usa la dificultad de la pantalla previa:
   - Fácil: a veces no ve la levantada y tira cualquier carta, y si levanta elige al azar.
   - Normal: elige la levantada que más le conviene, pero la mitad de las veces no cuida lo que deja en la mesa.
   - Difícil: además tira siempre la carta que menos chances le da al jugador (sobre todo, que no pueda hacer escoba).
@@ -213,3 +232,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | **Mesas en línea comunes** (`js/mesas.js`): Truco y Conga entran igual (panel, sala de espera, sala del menú). Las mesas sin nadie adentro se borran solas (presencia en Firebase; hay que actualizar las reglas en la consola) |
 | 30/10/2026 | Menú sin selector de modo: cada juego con Jugar solo, Reglas, Crear mesa y Ver mesas. Se sacan Chinchón, Brisca, Tute y Mus |
 | 30/10/2026 | Truco: reglas de la mesa (flor, contraflor, envidos, pico a pico), panel de opciones en partida (volumen, velocidad, reparto automático, animaciones, tamaño de cartas, pizarrón) y vista para el celular acostado |
+| 30/10/2026 | **Pantalla previa común de Jugar solo** (`js/previa.js`, `css/previa.css`): la misma pantalla en los siete juegos para elegir dificultad y opciones antes de repartir, con Cambiar opciones durante la partida. Jugar solo en el menú ya no fija la dificultad |

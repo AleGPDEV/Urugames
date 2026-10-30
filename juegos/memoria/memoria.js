@@ -40,7 +40,9 @@ function newGame(){
   });
   renderPlayers();
 }
-function remember(b){if(Math.random()<0.8)memory.set(+b.dataset.i,+b.dataset.id)}
+// Cuánto se acuerda la compu de cada carta que vio, según la dificultad
+let MEM=0.8;
+function remember(b){if(Math.random()<MEM)memory.set(+b.dataset.i,+b.dataset.id)}
 function flip(b){
   if(lock||b.classList.contains("up")||b.classList.contains("done"))return false;
   if(!timer){t0=Date.now();timer=setInterval(tick,1000)}
@@ -98,4 +100,29 @@ function finish(){
   else{$("rivals").value="cpu";if(pares[u.dificultad])$("level").value=pares[u.dificultad]}
 })();
 $("new").onclick=newGame;["mode","rivals","level"].forEach(id=>$(id).onchange=newGame);
-newGame();
+
+// "Jugar solo": la pantalla previa común (js/previa.js) elige rivales, parejas y dificultad antes de repartir
+const previa=window.UruPrevia?UruPrevia.crear({
+  juego:"memoria",
+  subtitulo:c=>c.rivales===0?"Partida solo":c.contra==="amigos"?"Partida con amigos en este dispositivo":"Partida contra la compu",
+  dificultad:{
+    facil:"La compu se acuerda de la mitad de las cartas que ve.",
+    normal:"Se acuerda de casi todas.",
+    dificil:"No se le escapa casi ninguna."
+  },
+  opciones:[
+    {id:"rivales",nombre:"Rivales",valores:[[0,"Ninguno"],[1,"1"],[2,"2"],[3,"3"]],defecto:1,
+      nota:c=>c.rivales===0?"Jugás solo contra el reloj.":""},
+    {id:"contra",nombre:"Tus rivales son",valores:[["cpu","La compu"],["amigos","Amigos, por turnos en este dispositivo"]],defecto:"cpu",visible:c=>c.rivales>0},
+    {id:"parejas",nombre:"Parejas",valores:[[6,"6"],[8,"8"],[12,"12"]],defecto:8}
+  ],
+  empezar:c=>{
+    MEM={facil:.5,normal:.8,dificil:.95}[c.dificultad]||.8;
+    $("mode").value=String(c.rivales);$("rivals").value=c.contra;$("level").value=String(c.parejas);
+    newGame();
+  }
+}):null;
+if(previa&&previa.iniciar()){
+  ["mode","rivals","level"].forEach(id=>$(id).hidden=true);
+  $("optsBtn").hidden=false;$("optsBtn").onclick=()=>previa.mostrar();
+}else newGame();

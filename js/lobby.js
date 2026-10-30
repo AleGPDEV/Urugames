@@ -1,7 +1,7 @@
 // Menú principal: la grilla de juegos, cada uno con Jugar solo, Reglas, Crear mesa y Ver mesas.
 //
 // Enlaces que arma para cada juego (juegos/<id>/index.html):
-//   Jugar solo  → ?modo=solo&dificultad=normal
+//   Jugar solo  → ?modo=solo                   (el juego abre la pantalla previa común: js/previa.js)
 //   Reglas      → #reglas
 //   Crear mesa  → ?modo=multi&sala=nueva      (solo si el juego tiene online: true)
 //   Ver mesas   → ?modo=multi                  (abre el panel de mesas en línea del juego)
@@ -30,7 +30,7 @@
       '<h2 class="game-name">' + esc(j.nombre) + '</h2>' +
       '<p class="game-desc">' + esc(j.desc) + '</p>' +
       '<div class="game-actions">' +
-        '<a class="btn-play" href="' + base + '?modo=solo&amp;dificultad=normal">Jugar solo</a>' +
+        '<a class="btn-play" href="' + base + '?modo=solo">Jugar solo</a>' +
         '<a class="btn-rules" href="' + base + '#reglas">Reglas</a>' +
         enLinea +
       '</div>' +

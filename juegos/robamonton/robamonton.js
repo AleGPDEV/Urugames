@@ -13,7 +13,7 @@ const RATIO = 261.6 / 170.67; // alto/ancho de cada carta en img/baraja.jpg
 
 // Dificultad del menú: Fácil juega casi al azar, Normal busca la mejor jugada, Difícil además cuida su montón y recuerda lo que salió.
 const CFG = window.URUGAMES || {};
-const DIF = ["facil", "normal", "dificil"].includes(CFG.dificultad) ? CFG.dificultad : "normal";
+let DIF = ["facil", "normal", "dificil"].includes(CFG.dificultad) ? CFG.dificultad : "normal";
 
 // Posición de cada asiento (en % de la mesa), en el orden del turno después de "Vos" (abajo), girando hacia la derecha.
 const SEATS = { 1: [[50, 12]], 2: [[82, 22], [18, 22]], 3: [[90, 50], [50, 11], [10, 50]] };
@@ -364,4 +364,21 @@ addEventListener("resize", () => { if (S) fitTable(); });
 try { const n = localStorage.getItem("urugames-robamonton-rivales"); if (n) $("nr").value = n; } catch (e) {}
 // Desde el menú: el multijugador en línea todavía no existe, así que se juega contra la compu.
 if (CFG.modo === "multi") $("aviso").hidden = false;
-newGame();
+
+// "Jugar solo": la pantalla previa común (js/previa.js) elige dificultad y rivales antes de repartir
+const previa = window.UruPrevia ? UruPrevia.crear({
+  juego: "robamonton",
+  dificultad: {
+    facil: "Muchas veces juega cualquier carta aunque pueda robar.",
+    normal: "Roba cuando puede y si no, tira la carta que menos le sirve a los demás.",
+    dificil: "Además se fija qué montón conviene robar y qué carta te deja menos opciones."
+  },
+  opciones: [
+    { id: "rivales", nombre: "Rivales", valores: [[1, "1"], [2, "2"], [3, "3"]], defecto: +$("nr").value || 3 }
+  ],
+  empezar: c => { DIF = c.dificultad; $("nr").value = String(c.rivales); newGame(); }
+}) : null;
+if (previa && previa.iniciar()) {
+  $("nr").hidden = true;
+  $("optsBtn").hidden = false; $("optsBtn").onclick = () => previa.mostrar();
+} else newGame();

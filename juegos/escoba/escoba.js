@@ -1,7 +1,7 @@
 // Escoba de 15: vos contra la compu, partida a 15 puntos.
 // Mazo de 40 cartas (sin 8 ni 9) tomado de img/baraja.jpg.
 const CFG = window.URUGAMES || {};
-const DIF = CFG.dificultad || 'normal';
+let DIF = CFG.dificultad || 'normal';
 const SUITS = ['oros', 'copas', 'espadas', 'bastos'];
 const NUMS = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 const FIG = { 10: 'sota', 11: 'caballo', 12: 'rey' };
@@ -252,4 +252,16 @@ $('newg').onclick = freshGame;
 
 // Desde el menú: el multijugador en línea todavía no existe, así que se juega contra la compu.
 if (CFG.modo === 'multi') $('aviso').hidden = false;
-freshGame();
+
+// "Jugar solo": la pantalla previa común (js/previa.js) elige la dificultad antes de repartir
+const previa = window.UruPrevia ? UruPrevia.crear({
+  juego: 'escoba',
+  dificultad: {
+    facil: 'A veces no ve la levantada y tira cualquier carta.',
+    normal: 'Elige la levantada que más le conviene, pero no siempre cuida lo que deja en la mesa.',
+    dificil: 'Además tira la carta que menos chances te da, sobre todo de hacer escoba.'
+  },
+  empezar: c => { DIF = c.dificultad; freshGame(); }
+}) : null;
+if (previa && previa.iniciar()) { $('optsBtn').hidden = false; $('optsBtn').onclick = () => previa.mostrar(); }
+else freshGame();
