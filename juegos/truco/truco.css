@@ -250,3 +250,4 @@ button.pile2:focus-visible{outline:3px solid var(--sol);outline-offset:6px;borde
 /* juego.css trae una .mesa provisoria centrada; acá la mesa es la del truco */
 .mesa{min-height:0;justify-content:flex-start;align-items:stretch;text-align:left;color:var(--tinta)}
 .mesa.tile{align-items:stretch}
+[hidden]{display:none!important}

@@ -196,3 +196,4 @@ details li{margin-bottom:6px}
 .mesa-botones{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
 .wait{margin:0; text-align:center; font-size:18px; color:var(--ink-soft)}
 .wait:empty{display:none}
+[hidden]{display:none!important}

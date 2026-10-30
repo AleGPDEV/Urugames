@@ -655,4 +655,5 @@ freshGame();
 if(mesas) mesas.iniciar().then(ok=>{ if(!ok && URU_MULTI && !(window.UruOnline&&UruOnline.disponible())) $('aviso').hidden=false });
 else if(URU_MULTI) $('aviso').hidden=false;
 if(URU_MULTI) $('onlineBox').open=true;
+else if($('onlineBox')) $('onlineBox').hidden=true; // "Jugar solo": sin el panel en línea
 })();

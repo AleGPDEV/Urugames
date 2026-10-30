@@ -595,5 +595,13 @@ function openZoom(){
 }
 function closeZoom(){const z=$('zoom');if(z&&!z.hidden){z.hidden=true;}}
 // Configuración según cómo se entró desde el menú (window.URUGAMES): en multijugador va directo a la parte en línea
+// "Jugar solo" muestra solo la mesa contra la máquina; "Crear mesa" o "Ver mesas" solo la parte en línea
+(function(){
+  const solo=document.querySelector('#lobby .tile.mesa'), online=$('onlineTile');
+  if(URU_MULTI){
+    // las opciones de jugadores y puntos pasan arriba del panel en línea, que sigue usándolas
+    ['plyBtns','picoRow','tgtBtns'].forEach(id=>{const el=$(id);const row=el&&(el.closest('.joinrow')||el);if(row&&online)online.insertBefore(row,$('online'));});
+    if(solo)solo.hidden=true;
+  }else if(online)online.hidden=true;
+})();
 show('lobby'); renderLobby(); initOnline();
-if(URU_MULTI){const t=$('onlineTile');if(t)t.scrollIntoView({block:'start'});}
