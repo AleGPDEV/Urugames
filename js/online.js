@@ -7,6 +7,9 @@
 //   on.user.profiles([uid,...])     → { uid: { name } }
 //   on.uid                          → id anónimo de este jugador
 //   UruOnline.nombre() / UruOnline.setNombre('Ale')
+//   on.presencia.entrar('ABCD') / salir('ABCD') / contar('ABCD') → quién está mirando cada mesa
+//
+// Para las mesas (lista, crear, unirse, sala de espera y limpieza) usá js/mesas.js, que es igual para todos los juegos.
 //
 // Cada documento se guarda como texto JSON en <juego>/<colección>/<id>/json, porque la
 // Realtime Database borra los null y deforma los arreglos con huecos.
@@ -107,6 +110,34 @@
     return { doc: doc, collection: collection };
   }
 
+  // Presencia: presencia/<juego>/<mesa>/<uid>. Se borra sola cuando se cierra la pestaña o se corta la conexión.
+  function crearPresencia(juego) {
+    var base = raiz.child('presencia/' + juego);
+    var ok = null;
+    return {
+      // Comprueba que las reglas de la base permitan anotar la presencia (si no, no se borra ninguna mesa)
+      disponible: function () {
+        if (ok !== null) return Promise.resolve(ok);
+        var r = base.child('_prueba/' + uid);
+        return r.set(true).then(function () { return r.remove(); })
+          .then(function () { ok = true; return ok; }, function () { ok = false; return ok; });
+      },
+      entrar: function (mesa) {
+        var r = base.child(mesa + '/' + uid);
+        r.onDisconnect().remove();
+        return r.set({ desde: firebase.database.ServerValue.TIMESTAMP }).catch(function () {});
+      },
+      salir: function (mesa) {
+        var r = base.child(mesa + '/' + uid);
+        r.onDisconnect().cancel();
+        return r.remove().catch(function () {});
+      },
+      contar: function (mesa) {
+        return base.child(mesa).once('value').then(function (s) { return s.numChildren(); });
+      }
+    };
+  }
+
   var user = {
     id: function () { return Promise.resolve(uid); },
     can: function () { return Promise.resolve(true); },
@@ -149,7 +180,7 @@
     error: function () { return ultimoError; },
     init: function (juego) {
       return conectar().then(function (ok) {
-        return ok ? { db: crearDB(juego), user: user, uid: uid } : null;
+        return ok ? { db: crearDB(juego), user: user, uid: uid, presencia: crearPresencia(juego) } : null;
       });
     }
   };

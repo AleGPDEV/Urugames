@@ -9,8 +9,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 /* ---------- estado de sesión ---------- */
 let G=null, tick=0;
 let MODE='local', ME=0, SEATNAME=[], HOST=false;
-let DB=null, USER=null, MYID=null, CAN_WRITE=null;
-let TREF=null, TCODE=null, TUNSUB=null, LOCALREV=0, writing=false, dirty=false;
+let TCODE=null, mesas=null;
 const seen={};
 const ANIM={deal:null,flown:new Set(),won:null,pile:null};
 let autoTick=0;
@@ -526,167 +525,40 @@ function startLocal(){
   newGame(TARGET,PLAYERS,null,PICO); show('game'); step();
 }
 function toLobby(){ leaveTable(); MODE='local'; G=null; show('lobby'); renderLobby(); }
-function leaveTable(){ if(TUNSUB){TUNSUB();TUNSUB=null;} TREF=null; TCODE=null; LOCALREV=0; tick++; }
+function leaveTable(){ if(mesas&&mesas.enMesa()) mesas.salir(); TCODE=null; tick++; }
 
-/* ---------- en línea ---------- */
-let LOBBY_DOCS=[], LOBBY_ERR='', lobbyUnsub=null, ONLINE_READY=false;
-let FIRST_LIST=false;
-async function initOnline(){
-  // Conexión común de Urugames (js/online.js, Firebase)
-  try{
-    const on=window.UruOnline?await UruOnline.init('truco'):null;
-    if(on){DB=on.db; USER=on.user; MYID=on.uid; CAN_WRITE=true;}
-  }catch(e){DB=null;}
-  if(DB&&MYID){
-    lobbyUnsub=DB.collection('mesas').where('status','in',['waiting','playing','done']).onSnapshot(s=>{
-      LOBBY_DOCS=s.docs.map(d=>({id:d.id,...d.data()})).filter(d=>Array.isArray(d.seats));
-      if(!FIRST_LIST){FIRST_LIST=true;autoSala();}
-      renderLobby();
-    },()=>{LOBBY_ERR='No se pudo leer la lista de mesas.';renderLobby();});
-  }else if(URU_MULTI&&!(window.UruOnline&&UruOnline.disponible())){$('aviso').hidden=false;}
-  ONLINE_READY=true; renderLobby();
-}
-// Lo que eligió el jugador en el menú principal: partida rápida, sala nueva o un código
+/* ---------- en línea: js/mesas.js, igual para todos los juegos ---------- */
 const URU=window.URUGAMES||{}, URU_MULTI=URU.modo==='multi';
-let AUTO_DONE=false;
-function autoSala(){
-  if(!URU_MULTI||AUTO_DONE||!URU.sala)return;
-  AUTO_DONE=true;
-  if(URU.sala==='nueva')return createTable();
-  if(URU.sala==='rapida'){
-    const open=LOBBY_DOCS.filter(d=>d.status==='waiting'&&!d.seats.includes(MYID)&&d.seats.includes(null)&&Date.now()-(d.createdAt||0)<3600e3)
-      .sort((a,b)=>(b.seats.length===PLAYERS)-(a.seats.length===PLAYERS)||(b.createdAt||0)-(a.createdAt||0));
-    return open.length?joinTable(open[0].id):createTable();
-  }
-  return joinTable(URU.sala);
+function initOnline(){
+  if(!window.UruMesas){ if(URU_MULTI)$('aviso').hidden=false; return; }
+  mesas=UruMesas.crear({
+    juego:'truco', panel:$('online'),
+    espera:{mostrar:h=>{$('waiting').innerHTML=h;show('waiting');}, ocultar:()=>{if(!$('waiting').hidden)show(G?'game':'lobby');}},
+    clases:{boton:'btn yes',secundario:'btn ghost',chico:'sm',nota:'note'},
+    jugadores:()=>PLAYERS,
+    datosMesa:()=>({target:TARGET,pico:PICO}),
+    nuevaPartida:m=>{const keep=G;newGame(m.target||TARGET,m.seats.length,m.cpu,m.pico!==false);const g=G;G=keep;return g;},
+    etiquetaAsiento:(i,m,yo)=>i%2===yo%2?'Nosotros':'Ellos',
+    resumen:(m,yo)=>m.g?`, ${m.g.score[yo%2]} a ${m.g.score[1-yo%2]}`:', jugando',
+    alEstado:(g,info)=>{
+      tick++; MODE='online'; TCODE=info.codigo; ME=info.asiento; HOST=info.host; SEATNAME=info.nombres;
+      G=g; show('game'); render(); maybeCpu(); maybeAuto();
+    },
+    alSalir:()=>{ MODE='local'; G=null; TCODE=null; show('lobby'); renderLobby(); }
+  });
+  mesas.iniciar().then(ok=>{ if(!ok&&URU_MULTI&&!(window.UruOnline&&UruOnline.disponible()))$('aviso').hidden=false; });
 }
-async function names(ids){
-  const out={}; ids=ids.filter(Boolean);
-  if(USER&&ids.length){try{const ps=await USER.profiles(ids);for(const id of ids)out[id]=ps[id]&&ps[id].name||'';}catch(e){}}
-  return out;
+function renderLobby(){
+  renderPicks();
+  $('fan').innerHTML=['espada','oro','basto'].map((s,i)=>cardHTML({n:[1,7,1][i],s,id:'f'+i})).join('');
+  if(mesas)mesas.redibujar();
 }
 function renderPicks(){
   const t=$('tgtBtns');if(t)t.innerHTML=[30,40].map(v=>`<button class="btn sm ${v===TARGET?'yes':'ghost'}" data-act="tgt:${v}" aria-pressed="${v===TARGET}">${v}</button>`).join('');
   const k=$('picoRow');if(k){k.hidden=PLAYERS!==6;$('picoBtns').innerHTML=[['si','Sí'],['no','No']].map(([v,l])=>`<button class="btn sm ${(v==='si')===PICO?'yes':'ghost'}" data-act="pico:${v}" aria-pressed="${(v==='si')===PICO}">${l}</button>`).join('');}
   const p=$('plyBtns');if(p)p.innerHTML=[2,4,6].map(v=>`<button class="btn sm ${v===PLAYERS?'yes':'ghost'}" data-act="ply:${v}" aria-pressed="${v===PLAYERS}">${v}</button>`).join('');
 }
-async function renderLobby(){
-  renderPicks();
-  $('fan').innerHTML=['espada','oro','basto'].map((s,i)=>cardHTML({n:[1,7,1][i],s,id:'f'+i})).join('');
-  const box=$('online'); if(!box)return;
-  if(!ONLINE_READY){box.innerHTML='<p class="note">Conectando con la mesa compartida…</p>';return;}
-  if(!DB||!MYID){
-    box.innerHTML=window.UruOnline&&UruOnline.disponible()
-      ?`<p>No se pudo conectar con el servidor de mesas. Revisá la conexión y recargá la página.</p>${UruOnline.error()?`<p class="note">Detalle: ${esc(UruOnline.error())}</p>`:''}<p class="note">Mientras tanto podés jugar contra la máquina.</p>`
-      :`<p>El modo en línea todavía no está configurado.</p><p class="note">Mientras tanto podés jugar contra la máquina.</p>`;
-    return;
-  }
-  // La parte fija (nombre, botones, código) se dibuja una sola vez para no borrar lo que se está escribiendo
-  if(!$('onlineList')){
-    box.innerHTML=`
-      <div class="joinrow"><label class="note" for="nick">Tu nombre</label><input id="nick" maxlength="20" autocomplete="nickname" placeholder="Cómo te ven los demás" value="${esc(UruOnline.nombre())}"></div>
-      <p id="onlineIntro"></p>
-      <div class="btns"><button class="btn yes" data-act="create" id="createBtn"></button></div>
-      <div class="joinrow"><label class="note" for="code">Código</label><input id="code" maxlength="4" autocomplete="off" placeholder="ABCD"><button class="btn ghost" data-act="joincode">Unirme</button></div>
-      <div class="err" id="lobbyErr"></div>
-      <div id="onlineList"></div>`;
-  }
-  $('onlineIntro').textContent=`Abrí una mesa de ${PLAYERS} y pasale el código a tus amigos, o sentate en una que esté esperando. Los lugares que nadie ocupe los juega la máquina.`;
-  $('createBtn').textContent=`Abrir una mesa de ${PLAYERS}`;
-  $('lobbyErr').textContent=LOBBY_ERR;
-  const mine=LOBBY_DOCS.filter(d=>d.seats.includes(MYID));
-  const open=LOBBY_DOCS.filter(d=>d.status==='waiting'&&!d.seats.includes(MYID)&&d.seats.includes(null)&&Date.now()-(d.createdAt||0)<6*3600e3);
-  const ids=[...new Set([...mine,...open].map(d=>d.host))];
-  const N=await names(ids);
-  const who=id=>esc(N[id]||'Alguien');
-  const free=d=>d.seats.filter(x=>!x).length;
-  const li=(d,label,act,btn)=>`<li><span class="code">${esc(d.id)}</span><span class="meta">${label}</span><button class="btn yes sm" data-act="${act}:${esc(d.id)}">${btn}</button></li>`;
-  $('onlineList').innerHTML=`
-    ${mine.length?`<h2 style="font-size:1.15rem">Tus mesas</h2><ul class="tables">${mine.map(d=>{const me=d.seats.indexOf(MYID),mt=me%2;
-      return li(d,`de ${d.seats.length}${d.status==='waiting'?', esperando gente':d.g?`, ${d.g.score[mt]} a ${d.g.score[1-mt]}`:''}${d.status==='done'?', terminada':''}`,'resume','Seguir');}).join('')}</ul>`:''}
-    <h2 style="font-size:1.15rem">Mesas esperando gente</h2>
-    ${open.length?`<ul class="tables">${open.map(d=>li(d,`de ${d.seats.length}, abrió ${who(d.host)}, ${free(d)} ${free(d)===1?'lugar':'lugares'} libres`,'join','Sentarse')).join('')}</ul>`:'<p class="empty">No hay mesas abiertas ahora. Abrí una y avisale a tus amigos.</p>'}`;
-}
-function lobbyError(msg){LOBBY_ERR=msg;const e=$('lobbyErr');if(e)e.textContent=msg;}
-function newCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ';let s='';for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
-async function createTable(){
-  lobbyError('');
-  const code=newCode(); const ref=DB.doc('mesas/'+code);
-  try{
-    const ex=await ref.get(); if(ex.exists) return createTable();
-    const seats=Array.from({length:PLAYERS},(_,i)=>i===0?MYID:null);
-    await ref.set({seats,host:MYID,status:'waiting',g:null,rev:0,target:TARGET,pico:PICO,createdAt:Date.now()});
-    openTable(code);
-  }catch(e){lobbyError(e&&e.code==='quota_exceeded'?'No hay lugar para más mesas.':'No se pudo abrir la mesa. Probá de nuevo.');}
-}
-async function joinTable(code){
-  lobbyError('');
-  code=(code||'').trim().toUpperCase();
-  if(!/^[A-Z]{4}$/.test(code)) return lobbyError('El código tiene cuatro letras.');
-  const ref=DB.doc('mesas/'+code);
-  try{
-    const lease=await ref.acquire({holder:MYID,ttlMs:4000});
-    if(!lease.acquired) return lobbyError('Alguien se está sentando en esa mesa. Probá en unos segundos.');
-    const s=await ref.get();
-    if(!s.exists) return lobbyError('No encontré esa mesa.');
-    const d=s.data();
-    if(!Array.isArray(d.seats)) return lobbyError('Esa mesa es de una versión anterior del juego. Abrí una nueva.');
-    if(d.seats.includes(MYID)) return openTable(code);
-    const free=d.seats.indexOf(null);
-    if(free<0||d.status!=='waiting') return lobbyError('Esa mesa ya está completa.');
-    const seats=[...d.seats]; seats[free]=MYID;
-    if(!seats.includes(null)){
-      newGame(d.target||TARGET,seats.length,seats.map(()=>false),d.pico!==false);
-      LOCALREV=1;
-      await ref.update({seats,status:'playing',g:JSON.parse(JSON.stringify(G)),rev:1});
-    }else await ref.update({seats});
-    openTable(code);
-  }catch(e){lobbyError('No pude sentarte en la mesa. Probá de nuevo.');}
-}
-async function startWithCpu(){
-  const s=await TREF.get(); const d=s.data(); if(!d||d.status!=='waiting')return;
-  newGame(d.target||TARGET,d.seats.length,d.seats.map(x=>!x),d.pico!==false);
-  LOCALREV=(d.rev||0)+1;
-  await TREF.update({status:'playing',g:JSON.parse(JSON.stringify(G)),rev:LOCALREV});
-}
-async function cancelTable(){const r=TREF;toLobby();try{await r.delete();}catch(e){}}
-function openTable(code){
-  leaveTable(); MODE='online'; TCODE=code; TREF=DB.doc('mesas/'+code);
-  $('waiting').innerHTML=`<h2>Abriendo la mesa…</h2>`; show('waiting');
-  TUNSUB=TREF.onSnapshot(async s=>{
-    if(TCODE!==code)return;
-    if(!s.exists){toLobby();lobbyError('La mesa se cerró.');return;}
-    const d=s.data();
-    if(!Array.isArray(d.seats)){toLobby();lobbyError('Esa mesa es de una versión anterior del juego.');return;}
-    const seat=d.seats.indexOf(MYID);
-    if(seat<0){toLobby();lobbyError('Esa mesa ya está completa.');return;}
-    ME=seat; HOST=d.host===MYID;
-    const N=await names(d.seats);
-    let cpuNo=0;
-    SEATNAME=d.seats.map((id,i)=>id?(N[id]||`Jugador ${i+1}`):`Máquina ${++cpuNo}`);
-    if(d.status==='waiting'){
-      const n=d.seats.length;
-      const list=d.seats.map((id,i)=>`<li><span class="code">${i%2===seat%2?'Nosotros':'Ellos'}</span><span class="meta">${id?esc(id===MYID?'Vos':(N[id]||'Jugador')):'libre'}</span></li>`).join('');
-      $('waiting').innerHTML=`<h2>Mesa de ${n} abierta</h2><p>Pasale este código a tus amigos para que se sienten:</p><div class="bigcode">${esc(code)}</div>
-        ${n>2?`<ul class="tables">${list}</ul>`:''}
-        <p class="note">${HOST?'La partida empieza sola cuando se llena. Si no querés esperar, los lugares libres los juega la máquina.':'Esperando que se llene la mesa o que quien la abrió empiece.'}</p>
-        <div class="btns">${HOST?`${n>2?'<button class="btn yes" data-act="cpustart">Empezar con la máquina en los libres</button>':''}<button class="btn ghost" data-act="cancel">Cerrar la mesa</button>`:'<button class="btn ghost" data-act="leave">Volver al inicio</button>'}</div>`;
-      show('waiting');return;
-    }
-    if(d.g&&(d.rev||0)>=LOCALREV){LOCALREV=d.rev||0;G=JSON.parse(JSON.stringify(d.g));show('game');render();maybeCpu();maybeAuto();}
-  },()=>{toLobby();lobbyError('Se perdió la conexión con la mesa.');});
-}
-async function push(){
-  if(!TREF||!G)return;
-  if(writing){dirty=true;return;}
-  writing=true;
-  do{
-    dirty=false; LOCALREV++;
-    const body={g:JSON.parse(JSON.stringify(G)),rev:LOCALREV,status:G.phase==='over'?'done':'playing'};
-    try{await TREF.update(body);}catch(e){ $('bar').insertAdjacentHTML('afterbegin','<div class="err">No se pudo guardar la jugada. Revisá la conexión.</div>'); }
-  }while(dirty);
-  writing=false;
-}
+function push(){ if(mesas)mesas.publicar(G,G.phase==='over'); }
 
 /* ---------- eventos ---------- */
 document.addEventListener('click',e=>{
@@ -698,11 +570,6 @@ document.addEventListener('click',e=>{
   if(a==='ply'){PLAYERS=+arg;try{localStorage.setItem('truco.jugadores',String(PLAYERS));}catch(e){}renderLobby();return;}
   if(a==='leave')return toLobby();
   if(a==='snd'){SOUND_ON=!SOUND_ON;try{localStorage.setItem('truco.sonido',SOUND_ON?'si':'no');}catch(e){}render();return;}
-  if(a==='create')return createTable();
-  if(a==='join'||a==='resume')return a==='join'?joinTable(arg):openTable(arg);
-  if(a==='joincode')return joinTable($('code').value);
-  if(a==='cancel')return cancelTable();
-  if(a==='cpustart')return startWithCpu();
   if(!G)return;
   if(a==='zoom'){openZoom();return;}
   if(a==='unzoom'){closeZoom();return;}
@@ -719,7 +586,7 @@ document.addEventListener('click',e=>{
   else if(a==='cflor')contraFlor(ME);
   else if(a==='cfe')conFlorEnvido(ME);
 });
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='code')joinTable(e.target.value);if(e.key==='Escape')closeZoom();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeZoom();});
 function openZoom(){
   let z=$('zoom');
   if(!z){z=document.createElement('div');z.id='zoom';z.setAttribute('role','dialog');z.setAttribute('aria-modal','true');z.setAttribute('data-act','unzoom');document.body.appendChild(z);}
@@ -727,7 +594,6 @@ function openZoom(){
   z.hidden=false; z.querySelector('button').focus();
 }
 function closeZoom(){const z=$('zoom');if(z&&!z.hidden){z.hidden=true;}}
-document.addEventListener('change',e=>{if(e.target.id==='nick'&&window.UruOnline)e.target.value=UruOnline.setNombre(e.target.value);});
 // Configuración según cómo se entró desde el menú (window.URUGAMES): en multijugador va directo a la parte en línea
 show('lobby'); renderLobby(); initOnline();
 if(URU_MULTI){const t=$('onlineTile');if(t)t.scrollIntoView({block:'start'});}

@@ -1,5 +1,15 @@
 {
   "rules": {
+    "presencia": {
+      ".read": "auth != null",
+      "$juego": {
+        "$mesa": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      }
+    },
     "perfiles": {
       ".read": "auth != null",
       "$uid": {
@@ -14,7 +24,9 @@
     "$juego": {
       ".read": "auth != null",
       "$coleccion": {
-        ".indexOn": ["createdAt"],
+        ".indexOn": [
+          "createdAt"
+        ],
         "$id": {
           ".write": "auth != null",
           ".validate": "!newData.exists() || (newData.child('json').isString() && newData.child('json').val().length < 200000)"

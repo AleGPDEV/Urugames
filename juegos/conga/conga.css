@@ -167,31 +167,32 @@ details li{margin-bottom:6px}
 .modo{margin:0; font-size:15px; font-weight:600; color:var(--chalk-dim)}
 .aviso{grid-column:1/-1; margin:0; padding:10px 14px; border-radius:6px; background:rgba(30,12,2,.35); color:var(--chalk)}
 
-/* en línea */
+/* en línea: panel y sala de espera de js/mesas.js */
 .table-info{margin-right:auto; font-weight:600; color:var(--chalk-dim)}
 .table-info b{color:var(--chalk); letter-spacing:.08em}
 .online{display:flex; flex-direction:column; gap:10px}
 .online[open]{background:rgba(30,12,2,.28); border-radius:8px; padding:10px 12px}
 .online .small{font-size:15px; color:var(--chalk-dim); margin:8px 0}
-.online .field{display:flex; flex-direction:column; gap:4px; margin:10px 0}
-.online label{font-size:15px; font-weight:600; color:var(--chalk-dim)}
-.online input{font:inherit; font-size:17px; padding:8px 10px; border-radius:6px; border:0; background:var(--paper); color:var(--ink); min-width:0; width:100%}
-.online input#code{text-transform:uppercase; letter-spacing:.2em; font-weight:700}
-.online input:focus-visible{outline:3px solid var(--chalk); outline-offset:2px}
-.online #createBtn{width:100%}
-.joinrow{display:flex; gap:8px}
-.joinrow input{flex:1}
-.err{color:#ffd2c8; font-weight:600; margin:4px 0; min-height:0}
-.err:empty{display:none}
-.empty{color:var(--chalk-dim); font-size:15px; margin:4px 0}
-ul.tables{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px}
-ul.tables li{display:flex; align-items:center; gap:10px; padding:6px 0; border-top:1px solid rgba(247,236,217,.18)}
-ul.tables .code{font-weight:700; letter-spacing:.12em}
-ul.tables .meta{flex:1; min-width:0; font-size:15px}
+.mesa-campo{display:flex; flex-direction:column; gap:4px; margin:10px 0}
+.mesa-campo label{font-size:15px; font-weight:600; color:var(--chalk-dim); margin:0}
+.mesas input{font:inherit; font-size:17px; padding:8px 10px; border-radius:6px; border:0; background:var(--paper); color:var(--ink); min-width:0; width:100%}
+.mesas input[data-mesa-codigo]{text-transform:uppercase; letter-spacing:.2em; font-weight:700}
+.mesas input:focus-visible{outline:3px solid var(--chalk); outline-offset:2px}
+.mesas [data-mesa="abrir"]{width:100%}
+.mesa-fila{display:flex; gap:8px}
+.mesa-fila input{flex:1}
+.mesa-error{color:#ffd2c8; font-weight:600; margin:4px 0}
+.mesa-error:empty{display:none}
+.mesa-vacia{color:var(--chalk-dim); font-size:15px; margin:4px 0}
+.mesa-lista{list-style:none; padding:0!important; margin:0; display:flex; flex-direction:column; gap:6px}
+.mesa-lista li{display:flex; align-items:center; gap:10px; padding:6px 0; border-top:1px solid rgba(247,236,217,.18)}
+.mesa-lista .mesa-codigo{font-weight:700; letter-spacing:.12em}
+.mesa-lista .mesa-meta{flex:1; min-width:0; font-size:15px}
 .btn.sm{font-size:15px; padding:6px 12px}
-.dialog ul.tables li{border-top-color:rgba(36,55,154,.2)}
-.dialog .bigcode{font-family:var(--ui); font-weight:700; font-size:48px; letter-spacing:.2em; text-align:center; color:var(--ink-red)}
+.dialog .mesa-lista li{border-top-color:rgba(36,55,154,.2)}
+.dialog .mesa-codigo-grande{font-family:var(--ui); font-weight:700; font-size:48px; letter-spacing:.2em; text-align:center; color:var(--ink-red)}
+.dialog .small{font-size:18px; color:var(--ink-soft); margin:0}
 .dialog .btn.quiet{color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--ink); background:transparent}
-.dialog .bar{flex-wrap:wrap}
+.mesa-botones{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
 .wait{margin:0; text-align:center; font-size:18px; color:var(--ink-soft)}
 .wait:empty{display:none}

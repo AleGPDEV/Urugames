@@ -13,6 +13,8 @@ css/juego.css         Estilos de la página provisoria de cada juego
 js/juegos.js          Lista de juegos que muestra el menú
 js/lobby.js           Lógica del menú: modo, dificultad y enlaces
 js/juego-base.js      Lee cómo se entró al juego (window.URUGAMES)
+js/online.js          Conexión con Firebase (js/firebase-config.js tiene los datos del proyecto)
+js/mesas.js           Mesas en línea comunes a todos los juegos: crear, unirse, sala de espera y limpieza
 juegos/<id>/index.html  Un juego por carpeta
 img/baraja.jpg        Mazo completo (12 columnas x 5 filas: oros, copas, espadas, bastos, dorso)
 img/baraja-recortada.webp  La misma grilla sin el borde de cada celda
@@ -35,6 +37,7 @@ Dentro del juego, `window.URUGAMES` trae `{ id, modo, dificultad, sala }`.
 
 1. Sumalo a `js/juegos.js` (id, nombre, palo, jugadores, descripción).
 2. Creá `juegos/<id>/index.html` (podés copiar el de otro juego).
+3. Para jugarlo en línea, usá `UruMesas.crear` de `js/mesas.js` (ver Truco o Conga), así todos los juegos se entran igual.
 
 ## Probarlo
 

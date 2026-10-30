@@ -61,7 +61,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - **En línea (Firebase):** usa `js/online.js`, igual que el Truco.
   - Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa.
   - En la página, el desplegable "Jugar en línea con amigos" tiene tu nombre, abrir mesa (de 2 o 3, según lo elegido abajo), unirse con código y la lista de mesas.
-  - Cada mesa es `conga/mesas/<CÓDIGO>` con `{ seats, host, status, g, rev, n, createdAt }`. `g` es la partida entera.
+  - Entra con `js/mesas.js`, igual que el Truco. Cada mesa es `conga/mesas/<CÓDIGO>`; `g` es la partida entera.
   - Escribe la partida quien juega: cada persona su turno, y quien abrió la mesa juega los lugares de la compu y reparte cada mano.
   - Cada jugada se guarda como un evento (`g.ev`: reparto, levantar o tirar) y las demás pantallas la animan igual que la propia.
   - Los lugares libres los puede jugar la máquina ("Empezar con la máquina en los libres").
@@ -117,7 +117,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - **Sin ayudas en la mesa:** no se marcan piezas ni matas ni se muestra el envido.
 - **Configuración del lobby:**
   - Toma `window.URUGAMES`. La dificultad cambia a la compu: en Fácil tira al azar a veces y canta peor; en Difícil arriesga menos.
-  - **En línea (Firebase):** usa `js/online.js`. Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa. En la página del Truco está el recuadro "Con amigos en línea" con tu nombre, el código y la lista de mesas. Los lugares libres los puede jugar la máquina. Probado con dos jugadores simulados en una partida completa.
+  - **En línea (Firebase):** usa `js/online.js` y las mesas comunes de `js/mesas.js`. Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa. En la página del Truco está el recuadro "Con amigos en línea" con tu nombre, el código y la lista de mesas. Los lugares libres los puede jugar la máquina. Probado con dos jugadores simulados en una partida completa.
 - **Resultado:** al terminar la partida emite el evento `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, pensado para el ranking.
 - **Probado** con 600 partidas simuladas (200 de 2, de 4 y de 6) sin trabarse.
 - **Pendiente:**
@@ -157,11 +157,14 @@ Es el núcleo de la idea competitiva. Pensado así:
 - Cada juego debería avisar al terminar con un resultado común, por ejemplo `{ juego, resultado: 'gano'|'perdio'|'empate', puntaje, tiempo }`, para alimentar el ranking.
 - Las fichas y el ranking **tienen que estar en un servidor**. Si se guardan solo en el navegador, alcanza con borrar los datos o cambiar de dispositivo para tener fichas nuevas.
 
-### Multijugador en línea (empezado: Truco y Conga)
+### Multijugador en línea (Truco y Conga)
 - Backend elegido: **Firebase** (Realtime Database + inicio de sesión anónimo).
 - `js/firebase-config.js`: datos del proyecto. Si está vacío, los juegos avisan que el modo en línea no está configurado y se juega contra la compu.
 - `js/online.js`: módulo común. `UruOnline.init('<juego>')` devuelve `{ db, user, uid }`; `db.doc('mesas/ABCD')` y `db.collection('mesas')` guardan cada mesa como JSON en `<juego>/mesas/<código>`. El nombre del jugador se guarda en `perfiles/<uid>`.
-- `database.rules.json`: reglas de la base. Hay que copiarlas en la consola de Firebase (Realtime Database → Reglas), porque el modo de prueba vence a los 30 días.
+- `js/mesas.js`: **la misma forma de entrar en todos los juegos.** `UruMesas.crear({...})` arma el panel "en línea" (nombre, abrir mesa, unirse con código, tus mesas y las que esperan gente), toma la sala elegida en el menú (`nueva`, `rapida` o un código), muestra la sala de espera con el código y "Empezar con la máquina en los libres", y guarda la partida en orden (`rev`). Cada juego solo dice cómo arma la partida (`nuevaPartida`) y qué hace cuando llega una jugada (`alEstado`). El comentario de arriba del archivo explica cómo conectarlo. Truco y Conga ya lo usan.
+- **Mesas vacías:** cada pantalla anota que está en la mesa en `presencia/<juego>/<código>/<uid>`, y Firebase lo borra solo al cerrar la pestaña o cortarse la conexión. Cuando el último sale de una mesa, la mesa se borra. Si todos cerraron la pestaña, la borra cualquiera que abra la lista de mesas de ese juego (después de 90 segundos sin nadie).
+- `database.rules.json`: reglas de la base. **Se agregó `presencia`: hay que volver a copiarlas en la consola.** Mientras las reglas viejas sigan puestas, no se borra ninguna mesa (se comprueba antes). Hay que copiarlas en la consola de Firebase (Realtime Database → Reglas), porque el modo de prueba vence a los 30 días.
+- Para sumar un juego: cargar `js/firebase-config.js`, `js/online.js` y `js/mesas.js`, y llamar a `UruMesas.crear`.
 - Falta: Culo sucio, Chancho va, Roba montón y Memoria.
 
 ### Lobby
@@ -193,3 +196,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Escoba de 15** completo (vos contra la compu, a 15 puntos, pista y dificultad del menú). En `js/juegos.js` pasa a 2 jugadores |
 | 29/10/2026 | **Multijugador en línea** con Firebase: módulo común `js/online.js`, reglas `database.rules.json` y Truco conectado (crear sala, partida rápida y unirse con código desde el menú) |
 | 29/10/2026 | **Conga en línea** con Firebase: mesas de 2 o 3 (crear sala, partida rápida y unirse con código), jugadas animadas en todas las pantallas, lugares libres para la máquina y evento `urugames:resultado` |
+| 29/10/2026 | **Mesas en línea comunes** (`js/mesas.js`): Truco y Conga entran igual (panel, sala de espera, sala del menú). Las mesas sin nadie adentro se borran solas (presencia en Firebase; hay que actualizar las reglas en la consola) |
