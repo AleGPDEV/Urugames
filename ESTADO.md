@@ -149,7 +149,7 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 ## Qué falta
 
 ### Juegos
-Chinchón, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
+Siete y medio es una **página provisoria** que dice "Próximamente" y tiene las reglas sin escribir. Chinchón, Brisca, Tute y Mus se sacaron del menú el 30/10/2026 porque no se van a hacer por ahora.
 
 ### Fichas diarias (sin empezar)
 Es el núcleo de la idea competitiva. Pensado así:
@@ -197,3 +197,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | **Multijugador en línea** con Firebase: módulo común `js/online.js`, reglas `database.rules.json` y Truco conectado (crear sala, partida rápida y unirse con código desde el menú) |
 | 29/10/2026 | **Conga en línea** con Firebase: mesas de 2 o 3 (crear sala, partida rápida y unirse con código), jugadas animadas en todas las pantallas, lugares libres para la máquina y evento `urugames:resultado` |
 | 29/10/2026 | **Mesas en línea comunes** (`js/mesas.js`): Truco y Conga entran igual (panel, sala de espera, sala del menú). Las mesas sin nadie adentro se borran solas (presencia en Firebase; hay que actualizar las reglas en la consola) |
+| 30/10/2026 | Menú sin selector de modo: cada juego con Jugar solo, Reglas, Crear mesa y Ver mesas. Se sacan Chinchón, Brisca, Tute y Mus |

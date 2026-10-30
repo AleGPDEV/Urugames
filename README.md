@@ -1,6 +1,6 @@
 # Urugames · Mesa de Naipes
 
-Juegos de baraja española en el navegador: Truco, Chinchón, Conga, Escoba, Brisca, Tute, Mus, Siete y medio, Memoria, Culo sucio, Chancho va y Roba montón, en modo individual o multijugador.
+Juegos de baraja española en el navegador: Truco, Conga, Escoba, Siete y medio, Memoria, Culo sucio, Chancho va y Roba montón, en modo individual o multijugador.
 
 Estado actual del desarrollo y próximos pasos: ver [ESTADO.md](ESTADO.md).
 
