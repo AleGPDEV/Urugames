@@ -12,7 +12,7 @@
 // Realtime Database borra los null y deforma los arreglos con huecos.
 (function () {
   var SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
-  var promesa = null, uid = null, raiz = null;
+  var promesa = null, uid = null, raiz = null, ultimoError = '';
 
   function cargar(src) {
     return new Promise(function (ok, mal) {
@@ -138,7 +138,7 @@
         if (n) raiz.child('perfiles/' + uid).set({ nombre: n }).catch(function () {});
         return true;
       })
-      .catch(function (e) { console.warn('Urugames en línea:', e); promesa = null; return false; });
+      .catch(function (e) { console.warn('Urugames en línea:', e); ultimoError = (e && (e.code || e.message)) || String(e); promesa = null; return false; });
     return promesa;
   }
 
@@ -146,6 +146,7 @@
     disponible: disponible,
     nombre: leerNombre,
     setNombre: setNombre,
+    error: function () { return ultimoError; },
     init: function (juego) {
       return conectar().then(function (ok) {
         return ok ? { db: crearDB(juego), user: user, uid: uid } : null;

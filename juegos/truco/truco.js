@@ -543,7 +543,7 @@ async function initOnline(){
       if(!FIRST_LIST){FIRST_LIST=true;autoSala();}
       renderLobby();
     },()=>{LOBBY_ERR='No se pudo leer la lista de mesas.';renderLobby();});
-  }else if(URU_MULTI){$('aviso').hidden=false;}
+  }else if(URU_MULTI&&!(window.UruOnline&&UruOnline.disponible())){$('aviso').hidden=false;}
   ONLINE_READY=true; renderLobby();
 }
 // Lo que eligió el jugador en el menú principal: partida rápida, sala nueva o un código
@@ -577,7 +577,7 @@ async function renderLobby(){
   if(!ONLINE_READY){box.innerHTML='<p class="note">Conectando con la mesa compartida…</p>';return;}
   if(!DB||!MYID){
     box.innerHTML=window.UruOnline&&UruOnline.disponible()
-      ?`<p>No se pudo conectar con el servidor de mesas. Revisá la conexión y recargá la página.</p><p class="note">Mientras tanto podés jugar contra la máquina.</p>`
+      ?`<p>No se pudo conectar con el servidor de mesas. Revisá la conexión y recargá la página.</p>${UruOnline.error()?`<p class="note">Detalle: ${esc(UruOnline.error())}</p>`:''}<p class="note">Mientras tanto podés jugar contra la máquina.</p>`
       :`<p>El modo en línea todavía no está configurado.</p><p class="note">Mientras tanto podés jugar contra la máquina.</p>`;
     return;
   }
