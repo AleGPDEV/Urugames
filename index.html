@@ -30,48 +30,7 @@
     </header>
 
     <section class="stack">
-      <h1>¿Cómo querés jugar?</h1>
-      <div class="seg" role="group" aria-label="Modo de juego">
-        <button data-mode="solo" aria-pressed="true">Individual</button>
-        <button data-mode="multi" aria-pressed="false">Multijugador</button>
-      </div>
-
-      <div id="panel-solo" class="panel solo">
-        <div class="panel-text">
-          <span class="panel-title">Contra la máquina</span>
-          <span class="muted">Elegí la dificultad y después el juego.</span>
-        </div>
-        <div class="pills" role="group" aria-label="Dificultad">
-          <button data-level="facil" aria-pressed="false">Fácil</button>
-          <button data-level="normal" aria-pressed="true">Normal</button>
-          <button data-level="dificil" aria-pressed="false">Difícil</button>
-        </div>
-      </div>
-
-      <div id="panel-multi" class="multi" hidden>
-        <a href="#partida-rapida" class="multi-card gold">
-          <span class="panel-title">Partida rápida</span>
-          <span>Te sentamos en la primera mesa libre.</span>
-        </a>
-        <a href="#crear-sala" class="multi-card">
-          <span class="panel-title">Crear sala privada</span>
-          <span class="muted">Invitá a tus amigos con un código.</span>
-        </a>
-        <form class="multi-card" id="join-form">
-          <label for="codigo-sala" class="panel-title">Unirse con código</label>
-          <div class="join-row">
-            <input id="codigo-sala" placeholder="Ej: K7Q2" maxlength="8" autocomplete="off">
-            <button type="submit">Entrar</button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <section class="stack">
-      <div class="games-head">
-        <h2>Elegí tu juego</h2>
-        <span class="muted" id="mode-hint">Modo individual · contra la máquina</span>
-      </div>
+      <h1>Elegí tu juego</h1>
       <div class="games" id="games"></div>
     </section>
 
