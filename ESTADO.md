@@ -115,11 +115,25 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
 - **Reparto automático:** la siguiente mano o pico arranca solo a los 3 segundos. También hay un botón "Repartir ya".
 - **Audios de todos los cantos:** grabaciones limpias de ruido. Tu equipo suena con voz grave y el rival con voz aguda. Hay un botón para silenciar.
 - **Sin ayudas en la mesa:** no se marcan piezas ni matas ni se muestra el envido.
+- **Reglas de la mesa** (se eligen antes de empezar, en "Reglas de la mesa", y viajan dentro de la partida, así que en línea valen para todos):
+  - Flor: sí o no.
+  - Contraflor y con flor envido: sí o no. Sin contraflor, cuando los dos equipos tienen flor solo se dice "la mía flor" y se comparan al final.
+  - Envidos: hasta envido-envido y real-real, o uno de cada.
+  - Pico a pico (6 jugadores): no, con los dos equipos en malas o con alguno en malas.
+- **Opciones dentro de la partida** (botón "Opciones" arriba de la mesa; se guardan por persona en `localStorage`, clave `truco.ajustes`, y se pueden cambiar en cualquier momento):
+  - Volumen de los cantos.
+  - Velocidad de la compu: lenta, normal o rápida.
+  - Repartir solo al terminar la mano: sí o no.
+  - Animaciones: sí o no.
+  - Tamaño de las cartas: chicas, normales o grandes.
+  - Pizarrón completo o solo con los puntos.
+  - Muestra también las reglas de la mesa en juego.
+- **Celular acostado:** todo entra en una pantalla, con la mesa a la izquierda y los puntos y botones a la derecha. Las posiciones de los asientos cambian para esa vista.
 - **Configuración del lobby:**
   - Toma `window.URUGAMES`. La dificultad cambia a la compu: en Fácil tira al azar a veces y canta peor; en Difícil arriesga menos.
   - **En línea (Firebase):** usa `js/online.js` y las mesas comunes de `js/mesas.js`. Desde el menú, *Crear sala* abre una mesa nueva, *Partida rápida* se sienta en la primera mesa abierta (o abre una) y *Unirse con código* entra a esa mesa. En la página del Truco está el recuadro "Con amigos en línea" con tu nombre, el código y la lista de mesas. Los lugares libres los puede jugar la máquina. Probado con dos jugadores simulados en una partida completa.
 - **Resultado:** al terminar la partida emite el evento `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, pensado para el ranking.
-- **Probado** con 600 partidas simuladas (200 de 2, de 4 y de 6) sin trabarse.
+- **Probado** con 1000 partidas simuladas (todas las combinaciones de reglas, con 2, 4 y 6 jugadores) sin trabarse y respetando cada regla elegida.
 - **Pendiente:**
   - En línea, las cartas de todos viajan en el mismo documento y cada jugador escribe la partida: alguien con conocimientos podría ver las cartas ajenas o hacer trampa. Para competir con fichas, el reparto y la validación tienen que pasar a un servidor (por ejemplo Cloud Functions).
   - Las señas entre compañeros no existen (se ven las cartas del compañero).
@@ -198,3 +212,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | **Conga en línea** con Firebase: mesas de 2 o 3 (crear sala, partida rápida y unirse con código), jugadas animadas en todas las pantallas, lugares libres para la máquina y evento `urugames:resultado` |
 | 29/10/2026 | **Mesas en línea comunes** (`js/mesas.js`): Truco y Conga entran igual (panel, sala de espera, sala del menú). Las mesas sin nadie adentro se borran solas (presencia en Firebase; hay que actualizar las reglas en la consola) |
 | 30/10/2026 | Menú sin selector de modo: cada juego con Jugar solo, Reglas, Crear mesa y Ver mesas. Se sacan Chinchón, Brisca, Tute y Mus |
+| 30/10/2026 | Truco: reglas de la mesa (flor, contraflor, envidos, pico a pico), panel de opciones en partida (volumen, velocidad, reparto automático, animaciones, tamaño de cartas, pizarrón) y vista para el celular acostado |

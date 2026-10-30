@@ -251,3 +251,78 @@ button.pile2:focus-visible{outline:3px solid var(--sol);outline-offset:6px;borde
 .mesa{min-height:0;justify-content:flex-start;align-items:stretch;text-align:left;color:var(--tinta)}
 .mesa.tile{align-items:stretch}
 [hidden]{display:none!important}
+
+/* reglas de la mesa (antes de jugar) */
+.reglas-mesa{display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px}
+.reglas-mesa summary{cursor:pointer;font-weight:700;list-style:none;color:var(--tinta)}
+.reglas-mesa summary::-webkit-details-marker{display:none}
+.reglas-mesa summary::after{content:" +"}
+.reglas-mesa[open] summary::after{content:" −"}
+.reglas-mesa summary:focus-visible{outline:3px solid var(--sol);outline-offset:3px;border-radius:6px}
+.reglas-mesa[open]{display:flex}
+.reglas-mesa .joinrow{margin-top:8px;justify-content:center}
+.pizarra .reglas-mesa summary{color:var(--tiza)}
+/* panel de opciones */
+#opts{position:fixed;inset:0;z-index:60;background:rgba(10,20,32,.66);display:flex;justify-content:flex-end;animation:zfade .18s ease-out}
+#opts .obox{width:min(420px,100%);height:100%;overflow:auto;background:var(--pared2);color:var(--texto);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) 18px;
+  display:flex;flex-direction:column;gap:18px;box-shadow:-10px 0 30px rgba(0,0,0,.4);animation:oslide .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes oslide{from{transform:translateX(40px);opacity:.4}to{transform:none;opacity:1}}
+#opts .ohead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#opts h2{margin:0;font-family:var(--f-ui);font-weight:800;font-stretch:80%;font-variation-settings:"wdth" 80;font-size:1.7rem;color:var(--sol)}
+#opts h3{margin:0 0 6px;font-size:.95rem;font-weight:700;color:var(--tenue)}
+#opts section{display:flex;flex-direction:column;gap:10px;padding-top:12px;border-top:1px solid rgba(169,188,205,.18)}
+#opts .orow{display:flex;flex-direction:column;gap:6px}
+#opts .vol{display:flex;align-items:center;gap:12px}
+#opts input[type=range]{flex:1;accent-color:var(--sol);min-height:32px}
+#opts .vol b{min-width:4ch;text-align:right;font-variant-numeric:tabular-nums}
+#opts .rlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+#opts .note{margin:0;color:var(--tenue);font-size:.9rem}
+/* animaciones apagadas */
+body.anim-off *{animation:none!important;transition:none!important}
+/* tamaño de cartas */
+body[data-size=chica] #mesaMain{--k:.82} body[data-size=grande] #mesaMain{--k:1.2}
+#mesaMain .card{--cw0:var(--cw);width:calc(var(--cw) * var(--k,1))}
+/* pizarrón solo con los puntos */
+body[data-board=score] #log,body[data-board=score] .pizarra .chalkline,body[data-board=score] .pizarra details{display:none}
+.infoL{display:none}
+/* celular acostado: todo entra en una pantalla; mesa a la izquierda, pizarrón y botones a la derecha */
+@media (orientation:landscape) and (max-height:560px){
+  body.in-game{padding-block:8px}
+  body.in-game .backrow,body.in-game .top{display:none}
+  body.in-game .app{gap:8px}
+  .gamegrid{grid-template-columns:minmax(0,1fr) minmax(210px,34%);grid-template-areas:"mesa board" "mesa bar";grid-template-rows:auto 1fr;gap:8px 12px}
+  .tablecol{display:contents}
+  #mesaMain{grid-area:mesa;padding:6px 8px;gap:4px}
+  .gamegrid>.pizarra{grid-area:board;order:0;padding:8px 12px;gap:8px}
+  #bar{grid-area:bar;align-self:start;padding:10px}
+  .ring{aspect-ratio:auto;height:calc(100vh - 19.3vh - 112px);min-height:150px;max-height:none}
+  #mesaMain{position:relative}
+  .bazachips{position:absolute;left:14px;bottom:12px;flex-direction:column;align-items:flex-start;z-index:2}
+  #seatP .info{display:none}
+  .infoL{display:inline}
+  .ring .who{flex-wrap:nowrap;white-space:nowrap;font-size:.72rem;gap:4px}
+  .ring .who .tag,.ring .who .chip{font-size:.66rem;padding:0 6px}
+  .ring .opp{max-width:none;padding:2px 4px 4px;gap:2px}
+  #seatP .card{--cw:clamp(34px,12.5vh,72px)}
+  .you .hand{min-height:0;padding-top:4px}
+  #seatP{gap:2px}
+  .bazachips{min-height:0}
+  .gamehead .btn.sm{min-height:32px;padding:4px 10px}
+  .ring .opp .hand .card{--cw:clamp(18px,7vh,32px)}
+  .ring .opp.mate .hand .card{--cw:clamp(22px,8.5vh,38px)}
+  #mesaMain.n2 .ring .opp .hand .card{--cw:clamp(24px,9vh,44px)}
+  .pc .card,#mesaMain.n4 .pc .card,#mesaMain.n6 .pc .card{--cw:clamp(24px,9.5vh,46px)}
+  .pile2{--pw:clamp(20px,7vh,34px)}
+  .ring .who{font-size:.78rem}
+  .pizarra .score{grid-template-columns:minmax(0,1fr);gap:4px}
+  .pizarra .sname{font-size:1.1rem}.pizarra .spts{font-size:1.6rem}
+  .gamegrid>.pizarra .log,.gamegrid>.pizarra .chalkline,.gamegrid>.pizarra details{display:none}
+  #bar{gap:8px}
+  #bar .btns{gap:6px}
+  #bar .btn{min-height:36px;padding:6px 11px;font-size:.9rem}
+  #bar .status small{font-size:.8rem}
+  .info{font-size:.8rem}
+  .status{font-size:1rem}
+}
+

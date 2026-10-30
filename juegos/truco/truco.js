@@ -11,6 +11,8 @@ let G=null, tick=0;
 let MODE='local', ME=0, SEATNAME=[], HOST=false;
 let TCODE=null, mesas=null;
 const seen={};
+const LANDQ=window.matchMedia?matchMedia('(orientation:landscape) and (max-height:560px)'):null;
+if(LANDQ&&LANDQ.addEventListener)LANDQ.addEventListener('change',()=>{if(G)render();});
 const ANIM={deal:null,flown:new Set(),won:null,pile:null};
 let autoTick=0;
 const $=id=>document.getElementById(id);
@@ -79,13 +81,26 @@ function bestOfTeams(valFn,seats){
 function newDeck(){const d=[];for(const s of SUITS)for(const n of NUMS)d.push({n,s,id:n+s});
   for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
 let TARGET=40; try{const t=+localStorage.getItem('truco.puntos');if(t===30||t===40)TARGET=t;}catch(e){}
-let PICO=true; try{PICO=localStorage.getItem('truco.pico')!=='no';}catch(e){}
+// pico a pico: 'no' | 'ambos' (los dos equipos en malas) | 'alguno' (alguno en malas)
+let PICO='ambos'; try{const v=localStorage.getItem('truco.pico');PICO=v==='no'?'no':v==='alguno'?'alguno':'ambos';}catch(e){}
+/* ---------- reglas de la mesa: se eligen antes de jugar y viajan dentro de la partida ---------- */
+const RULE_DEF={flor:true,contraflor:true,envidoRep:true};
+let RULES={...RULE_DEF}; try{Object.assign(RULES,JSON.parse(localStorage.getItem('truco.reglas')||'{}'));}catch(e){}
+const RULE=()=>Object.assign({},RULE_DEF,(G&&G.rules)||{});
+/* ---------- ajustes de cada persona (no cambian la partida) ---------- */
+const PREF_DEF={vol:80,cpu:'normal',anim:true,auto:true,size:'normal',board:'full'};
+let PREF={...PREF_DEF}; try{Object.assign(PREF,JSON.parse(localStorage.getItem('truco.ajustes')||'{}'));}catch(e){}
+function savePref(){try{localStorage.setItem('truco.ajustes',JSON.stringify(PREF));}catch(e){}applyPref();}
+function applyPref(){const b=document.body;b.dataset.size=PREF.size;b.dataset.board=PREF.board;b.classList.toggle('anim-off',!PREF.anim);}
+const CPU_MS={lenta:1700,normal:1000,rapida:450};
 let PLAYERS=2; try{const t=+localStorage.getItem('truco.jugadores');if([2,4,6].includes(t))PLAYERS=t;}catch(e){}
-function newGame(target,n,cpu,pico){
+function newGame(target,n,cpu,pico,rules){
   n=n||2;
   const m=Math.floor(Math.random()*n);
   G={n,target:target||TARGET,score:[0,0],cpu:cpu||Array.from({length:n},(_,s)=>s!==0),mano:m,dealMano:m,
-     picoOn:n===6&&pico!==false,lastPico:true,pico:false,log:[],phase:'play',started:Date.now()};
+     picoRule:n===6?(pico===true||pico===undefined?'ambos':pico===false?'no':pico):'no',
+     rules:Object.assign({},RULE_DEF,rules||{}),lastPico:true,pico:false,log:[],phase:'play',started:Date.now()};
+  G.picoOn=G.picoRule!=='no';
   dealHand();
 }
 function dealHand(){
@@ -95,7 +110,7 @@ function dealHand(){
   for(let i=0;i<3;i++)for(const s of order)G.hands[s].push(d.pop());
   G.muestra=d.pop(); G.orig=G.hands.map(h=>[...h]);
   // pico a pico: en 6, mientras los dos equipos están en malas, se alterna una redonda y una de picos
-  const malas=G.score[0]<TGT()/2&&G.score[1]<TGT()/2;
+  const h=TGT()/2, malas=G.picoRule==='alguno'?(G.score[0]<h||G.score[1]<h):(G.score[0]<h&&G.score[1]<h);
   G.pico=!!(G.picoOn&&malas&&!G.lastPico); G.lastPico=G.pico;
   G.duelNext=false; G.bubble={};
   if(G.pico){
@@ -117,7 +132,7 @@ function startDuel(i){
 function resetRound(){
   Object.assign(G,{table:[[],[],[]],bazaWin:[],baza:0,results:[],leader:G.mano,turn:G.mano,truco:{level:1,owner:null},
     env:{done:false,chain:[]},florRes:null,pending:null,deferred:null,phase:'play',handWinner:null,cpuChk:{},fresh:null,winner:null});
-  G.flor=G.hands.map((h,s)=>isAct(s)&&hasFlor(h));
+  G.flor=G.hands.map((h,s)=>RULE().flor&&isAct(s)&&hasFlor(h));
   if(G.flor.some(Boolean)){G.env.done=true;resolveFlor();}
 }
 function resolveFlor(){
@@ -165,7 +180,7 @@ function step(){
   maybeAuto();
 }
 function maybeAuto(){
-  if(!G||G.phase!=='handover'||dealer()!==ME)return;
+  if(!G||G.phase!=='handover'||dealer()!==ME||!PREF.auto)return;
   const my=++autoTick;
   setTimeout(()=>{
     if(my!==autoTick||!G||G.phase!=='handover'||dealer()!==ME)return;
@@ -179,7 +194,7 @@ function maybeCpu(){
   if(!G.cpu[a])return;
   if(MODE==='online'&&!HOST)return;
   const my=++tick;
-  setTimeout(()=>{if(my===tick&&G&&G.phase==='play'&&G.cpu[actor()])cpuAct(actor());},G.n>2?850:1050);
+  setTimeout(()=>{if(my===tick&&G&&G.phase==='play'&&G.cpu[actor()])cpuAct(actor());},Math.round((CPU_MS[PREF.cpu]||1000)*(G.n>2?.85:1)));
 }
 function play(s,i){
   const c=G.hands[s].splice(i,1)[0]; G.table[G.baza].push({s,c}); G.fresh=c.id;
@@ -212,7 +227,8 @@ function endHand(t){
 }
 function envOptions(ch){
   const F=ch.includes('F'),e=ch.filter(x=>x==='E').length,r=ch.filter(x=>x==='R').length,o=[];
-  if(!F&&r===0&&e<2)o.push('E'); if(!F&&r<2)o.push('R'); if(!F)o.push('F'); return o;
+  const max=RULE().envidoRep?2:1;
+  if(!F&&r===0&&e<max)o.push('E'); if(!F&&r<max)o.push('R'); if(!F)o.push('F'); return o;
 }
 const falta=()=>G.pico?6:TGT()-Math.max(G.score[0],G.score[1]);
 const faltaFlor=()=>G.pico?12:falta();
@@ -289,8 +305,8 @@ function cpuAct(s){
   if(P&&P.to===s){
     if(P.kind==='envido') return cpuEnvResp(s);
     if(P.kind==='flor'||P.kind==='flor2'){const v=florVal(G.orig[s]);
-      if((v>=35&&r<.6)||r<.04) return contraFlor(s);
-      if((v>=31&&r<.5)||r<.06) return conFlorEnvido(s);
+      if(RULE().contraflor&&((v>=35&&r<.6)||r<.04)) return contraFlor(s);
+      if(RULE().contraflor&&((v>=31&&r<.5)||r<.06)) return conFlorEnvido(s);
       return florOk(s);}
     if(P.kind==='cfe'){const v=florVal(G.orig[s]);
       if(v>=35&&r<.5) return contraFlor(s);
@@ -375,12 +391,12 @@ const SND={'¡Truco!':'truco','¡Retruco!':'retruco','¡Vale cuatro!':'vale-cuat
 const audioCache={}; let sndBusy=0;
 let SOUND_ON=true; try{SOUND_ON=localStorage.getItem('truco.sonido')!=='no';}catch(e){}
 function playSnd(t,s){
-  const n=SND[t]; if(!n||!SOUND_ON)return;
+  const n=SND[t]; if(!n||!SOUND_ON||PREF.vol<=0)return;
   const f=`snd/${team(s)===myTeam()?'grave':'aguda'}/${n}.mp3`;
   try{const a=audioCache[f]||(audioCache[f]=new Audio(f));
     const now=Date.now(),wait=Math.max(0,sndBusy-now),len=(a.duration&&isFinite(a.duration)?a.duration*1000:2000);
     sndBusy=now+wait+len;
-    setTimeout(()=>{a.currentTime=0;const p=a.play();if(p)p.catch(()=>{});},wait);}catch(e){}
+    setTimeout(()=>{a.currentTime=0;a.volume=Math.max(0,Math.min(1,PREF.vol/100));const p=a.play();if(p)p.catch(()=>{});},wait);}catch(e){}
 }
 function bubbleFor(s){
   const b=G.bubble&&G.bubble[s]; if(!b)return '';
@@ -390,7 +406,7 @@ function bubbleFor(s){
   clearTimeout(bubbleTimer); bubbleTimer=setTimeout(render,left+30);
   return `<div class="bubble">${esc(b.t)}</div>`;
 }
-const SBTN=()=>`<button class="btn ghost sm" data-act="snd">${SOUND_ON?'Sonido: sí':'Sonido: no'}</button><button class="btn ghost sm" data-act="leave">Volver al inicio</button>`;
+const SBTN=()=>`<button class="btn ghost sm" data-act="snd" aria-pressed="${SOUND_ON}">${SOUND_ON?'Sonido: sí':'Sonido: no'}</button><button class="btn ghost sm" data-act="opts" aria-haspopup="dialog">Opciones</button><button class="btn ghost sm" data-act="leave">Volver al inicio</button>`;
 function render(){
   if(!G)return;
   const MT=myTeam();
@@ -399,14 +415,16 @@ function render(){
   const picoTxt=G.pico?`, pico a pico ${G.duelIdx+1} de 3: ${esc(nm(G.active[0]))} contra ${esc(nm(G.active[1]))}`:'';
   const modeTxt0=G.n===2?(MODE==='online'?`contra ${esc(nm(1-ME))}`:'contra la máquina'):`${G.n} jugadores, ${G.n/2} contra ${G.n/2}`;
   const modeTxt=modeTxt0+picoTxt;
-  $('ghead').innerHTML=`<span>${MODE==='online'?`Mesa <b>${esc(TCODE)}</b>, `:''}${modeTxt}</span><span class="btns">${SBTN()}</span>`;
+  const tvH=G.truco.level===1?'sin cantar':TNAME[G.truco.level];
+  $('ghead').innerHTML=`<span>${MODE==='online'?`Mesa <b>${esc(TCODE)}</b>, `:''}${modeTxt}<span class="infoL">. Truco ${tvH}, ${!isAct(ME)?'mirás este pico':(G.mano===ME?'sos mano':'sos pie')}</span></span><span class="btns">${SBTN()}</span>`;
 
   const reveal=G.phase!=='play';
   // ronda: los demás alrededor, cada carta jugada delante de quien la tiró, el mazo con la muestra al lado del mano
-  const SEAT={2:[[50,112],[50,1]],4:[[50,112],[84,50],[50,1],[16,50]],6:[[50,112],[84,64],[84,30],[50,1],[16,30],[16,64]]}[G.n];
-  const SEATC={2:[[50,112],[50,10]],4:[[50,112],[84,50],[50,10],[16,50]],6:[[50,112],[84,64],[84,30],[50,10],[16,30],[16,64]]}[G.n];
-  const PLAY={2:[[50,74],[50,30]],4:[[50,76],[67,50],[50,28],[33,50]],6:[[50,77],[66,62],[66,38],[50,27],[34,38],[34,62]]}[G.n];
-  const PILE={2:[[20,78],[80,22]],4:[[22,80],[86,78],[78,14],[14,78]],6:[[22,84],[86,86],[84,47],[22,12],[16,47],[14,86]]}[G.n];
+  const LAND=LANDQ&&LANDQ.matches;
+  const SEAT=LAND?{2:[[50,112],[50,1]],4:[[50,112],[90,50],[50,1],[10,50]],6:[[50,112],[90,66],[78,20],[50,1],[22,20],[10,66]]}[G.n]:{2:[[50,112],[50,1]],4:[[50,112],[84,50],[50,1],[16,50]],6:[[50,112],[84,64],[84,30],[50,1],[16,30],[16,64]]}[G.n];
+  const SEATC=LAND?{2:[[50,112],[50,10]],4:[[50,112],[90,50],[50,10],[10,50]],6:[[50,112],[90,66],[78,20],[50,10],[22,20],[10,66]]}[G.n]:{2:[[50,112],[50,10]],4:[[50,112],[84,50],[50,10],[16,50]],6:[[50,112],[84,64],[84,30],[50,10],[16,30],[16,64]]}[G.n];
+  const PLAY=LAND?{2:[[50,82],[50,46]],4:[[50,84],[72,50],[50,48],[28,50]],6:[[50,86],[74,72],[64,44],[50,50],[36,44],[26,72]]}[G.n]:{2:[[50,74],[50,30]],4:[[50,76],[67,50],[50,28],[33,50]],6:[[50,77],[66,62],[66,38],[50,27],[34,38],[34,62]]}[G.n];
+  const PILE=LAND?{2:[[30,88],[68,8]],4:[[22,86],[90,86],[66,6],[10,86]],6:[[36,90],[90,92],[93,22],[64,6],[7,22],[10,92]]}[G.n]:{2:[[20,78],[80,22]],4:[[22,80],[86,78],[78,14],[14,78]],6:[[22,84],[86,86],[84,47],[71,4],[16,47],[14,86]]}[G.n];
   const off=s=>(s-ME+G.n)%G.n;
   const others=Array.from({length:G.n-1},(_,k)=>(ME+1+k)%G.n);
   $('mesaMain').className='mesa n'+G.n;
@@ -461,13 +479,16 @@ function renderBar(){
     if(MODE==='local'||HOST)bs.push(B('new','Jugar otra partida','yes'));
   }else if(G.phase==='handover'){
     const won=G.handWinner===MT, d=dealer();
-    st=`<div class="status">${won?(we?'Ganamos la mano':'Ganaste la mano'):(we?'Ellos ganan la mano':`${esc(nm(1-ME))} gana la mano`)} <small>Truco en juego: ${G.truco.level} ${G.truco.level===1?'punto':'puntos'}.${G.duelNext?` Sigue el pico ${G.duelIdx+2} de 3…`:' Repartiendo…'}</small></div>`;
-    if(d===ME) bs.push(B('deal',G.duelNext?'Siguiente pico ya':'Repartir ya','ghost sm'));
+    const auto=PREF.auto||d!==ME;
+    st=`<div class="status">${won?(we?'Ganamos la mano':'Ganaste la mano'):(we?'Ellos ganan la mano':`${esc(nm(1-ME))} gana la mano`)} <small>Truco en juego: ${G.truco.level} ${G.truco.level===1?'punto':'puntos'}.${auto?(G.duelNext?` Sigue el pico ${G.duelIdx+2} de 3…`:' Repartiendo…'):''}</small></div>`;
+    if(d===ME) bs.push(PREF.auto?B('deal',G.duelNext?'Siguiente pico ya':'Repartir ya','ghost sm'):B('deal',G.duelNext?'Siguiente pico':'Repartir','yes'));
   }else if(actor()===ME&&G.pending){
     const P=G.pending, by=esc(nm(P.by));
     if(P.kind==='flor'||P.kind==='flor2'){
-      st=`<div class="status">${by} ${P.kind==='flor'?'canta <b>Flor</b>':'canta <b>La mía flor</b>'}<small>${P.kind==='flor'?'La mía flor: se comparan al final (3).':'Está bien: se comparan al final (3).'} Con flor envido: se comparan ahora por 5. Contra flor al resto: van ${faltaFlor()} puntos.</small></div>`;
-      bs.push(B('flok',P.kind==='flor'?'La mía flor':'Está bien','yes'),B('cfe','Con flor envido','call'),B('cflor','Contra flor al resto','call'));
+      const cf=RULE().contraflor;
+      st=`<div class="status">${by} ${P.kind==='flor'?'canta <b>Flor</b>':'canta <b>La mía flor</b>'}<small>${P.kind==='flor'?'La mía flor: se comparan al final (3).':'Está bien: se comparan al final (3).'}${cf?` Con flor envido: se comparan ahora por 5. Contra flor al resto: van ${faltaFlor()} puntos.`:''}</small></div>`;
+      bs.push(B('flok',P.kind==='flor'?'La mía flor':'Está bien','yes'));
+      if(cf)bs.push(B('cfe','Con flor envido','call'),B('cflor','Contra flor al resto','call'));
     }else if(P.kind==='cfe'){
       st=`<div class="status">${by} canta <b>Con flor envido</b><small>Querido: la mejor flor gana 5. No querido: le dan 3.</small></div>`;
       bs.push(B('q','Quiero','yes'),B('nq','No quiero','ghost'),B('cflor','Contra flor al resto','call'));
@@ -501,17 +522,18 @@ function renderRules(){
   const order=PZ.map(n=>n===M.n?`Rey (12)`:(FIG[n]?`${FIG[n]} (${n})`:n)).join(' · ');
   $('rules').innerHTML=`
     <p><b>Orden de las cartas:</b> piezas, luego las matas (1 de espadas, 1 de bastos, 7 de espadas, 7 de oros), después 3, 2, 1 de copas y oros, 12, 11, 10, 7 de copas y bastos, 6, 5, 4.</p>
-    ${G.n===6&&G.picoOn?`<p><b>Pico a pico:</b> mientras los dos equipos están en malas, se alterna una mano redonda con una de picos. En la de picos cada uno juega uno contra uno con el rival que tiene enfrente, de a un pico por vez. La falta envido vale 6 y la contra flor al resto 12.</p>`:''}
+    ${G.n===6&&G.picoOn?`<p><b>Pico a pico:</b> mientras ${G.picoRule==='alguno'?'alguno de los dos equipos esté':'los dos equipos están'} en malas, se alterna una mano redonda con una de picos. En la de picos cada uno juega uno contra uno con el rival que tiene enfrente, de a un pico por vez. La falta envido vale 6 y la contra flor al resto 12.</p>`:''}
     ${G.n>2?`<p><b>En equipo:</b> se juega ${G.n/2} contra ${G.n/2}, sentados alternados. Cada baza la gana el equipo de la carta más alta; si la carta más alta empata entre los dos equipos, es parda. En el envido y la flor cuenta el mejor de cada equipo. Responde los cantos el rival que sigue en la ronda.</p>`:''}
-    <p><b>Cantos de envido:</b> se van sumando. Envido vale 2, real envido 3; se puede decir envido, envido, real envido, real envido y falta envido. Querido, gana el envido acumulado; no querido, el que cantó último se lleva lo acumulado hasta el canto anterior.</p>
+    <p><b>Cantos de envido:</b> se van sumando. Envido vale 2, real envido 3; ${RULE().envidoRep?'se puede decir envido, envido, real envido, real envido y falta envido':'cada canto se dice una sola vez: envido, real envido y falta envido'}. Querido, gana el envido acumulado; no querido, el que cantó último se lleva lo acumulado hasta el canto anterior.</p>
     <p><b>Envido:</b> con pieza vale la pieza (2=30, 4=29, 5=28, 11 y 10=27) más tu mejor otra carta. Sin pieza: dos del mismo palo suman 20 más sus valores; las figuras valen 0. Si empatan, gana el más cerca del mano.</p>
-    <p><b>Flor:</b> tres del mismo palo, o pieza más dos del mismo palo, o dos piezas. Vale 3 y anula el envido. Si los dos equipos tienen flor: <i>la mía flor</i> se compara al final de la mano por 3; <i>con flor envido</i> se compara en el momento por 5 (no querido, 3); <i>contra flor al resto</i> va por lo que falta para la partida (no querido, lo que estaba en juego).</p>
+    ${!RULE().flor?'<p><b>Flor:</b> en esta mesa se juega sin flor.</p>':`<p><b>Flor:</b> tres del mismo palo, o pieza más dos del mismo palo, o dos piezas. Vale 3 y anula el envido. Si los dos equipos tienen flor: <i>la mía flor</i> se compara al final de la mano por 3; <i>con flor envido</i> se compara en el momento por 5 (no querido, 3); <i>contra flor al resto</i> va por lo que falta para la partida (no querido, lo que estaba en juego).${RULE().contraflor?'':' En esta mesa no se canta contraflor: las flores se comparan al final.'}</p>`}
     <p><b>Truco:</b> gana quien lleve dos de tres bazas. Si la primera es parda, decide la segunda. Truco 2, retruco 3, vale cuatro 4. Solo puede subir el equipo que aceptó el último canto. El envido va primero: podés cantarlo como respuesta al truco en la primera baza.</p>
     <p><b>Partida:</b> a ${TGT()} puntos, ${TGT()/2} malas y ${TGT()/2} buenas. En el pizarrón se anota con rayas de a cinco.</p>`;
 }
 
 /* ---------- pantallas ---------- */
 function show(view){
+  document.body.classList.toggle('in-game',view==='game');
   $('lobby').hidden=view!=='lobby'; $('waiting').hidden=view!=='waiting'; $('game').hidden=view!=='game';
   if(view!=='game'){$('score').innerHTML='';document.title='Truco Uruguayo';}
 }
@@ -522,7 +544,7 @@ function localNames(n){
 }
 function startLocal(){
   leaveTable(); MODE='local'; ME=0; HOST=true; SEATNAME=localNames(PLAYERS);
-  newGame(TARGET,PLAYERS,null,PICO); show('game'); step();
+  newGame(TARGET,PLAYERS,null,PICO,RULES); show('game'); step();
 }
 function toLobby(){ leaveTable(); MODE='local'; G=null; show('lobby'); renderLobby(); }
 function leaveTable(){ if(mesas&&mesas.enMesa()) mesas.salir(); TCODE=null; tick++; }
@@ -536,8 +558,8 @@ function initOnline(){
     espera:{mostrar:h=>{$('waiting').innerHTML=h;show('waiting');}, ocultar:()=>{if(!$('waiting').hidden)show(G?'game':'lobby');}},
     clases:{boton:'btn yes',secundario:'btn ghost',chico:'sm',nota:'note'},
     jugadores:()=>PLAYERS,
-    datosMesa:()=>({target:TARGET,pico:PICO}),
-    nuevaPartida:m=>{const keep=G;newGame(m.target||TARGET,m.seats.length,m.cpu,m.pico!==false);const g=G;G=keep;return g;},
+    datosMesa:()=>({target:TARGET,pico:PICO,rules:RULES}),
+    nuevaPartida:m=>{const keep=G;newGame(m.target||TARGET,m.seats.length,m.cpu,m.pico===false?'no':(m.pico===true||m.pico===undefined)?'ambos':m.pico,m.rules);const g=G;G=keep;return g;},
     etiquetaAsiento:(i,m,yo)=>i%2===yo%2?'Nosotros':'Ellos',
     resumen:(m,yo)=>m.g?`, ${m.g.score[yo%2]} a ${m.g.score[1-yo%2]}`:', jugando',
     alEstado:(g,info)=>{
@@ -555,7 +577,12 @@ function renderLobby(){
 }
 function renderPicks(){
   const t=$('tgtBtns');if(t)t.innerHTML=[30,40].map(v=>`<button class="btn sm ${v===TARGET?'yes':'ghost'}" data-act="tgt:${v}" aria-pressed="${v===TARGET}">${v}</button>`).join('');
-  const k=$('picoRow');if(k){k.hidden=PLAYERS!==6;$('picoBtns').innerHTML=[['si','Sí'],['no','No']].map(([v,l])=>`<button class="btn sm ${(v==='si')===PICO?'yes':'ghost'}" data-act="pico:${v}" aria-pressed="${(v==='si')===PICO}">${l}</button>`).join('');}
+  const pick=(act,cur,opts)=>opts.map(([v,l])=>`<button class="btn sm ${v===cur?'yes':'ghost'}" data-act="${act}:${v}" aria-pressed="${v===cur}">${l}</button>`).join('');
+  const k=$('picoRow');if(k){k.hidden=PLAYERS!==6;$('picoBtns').innerHTML=pick('pico',PICO,[['no','No'],['ambos','Los dos en malas'],['alguno','Alguno en malas']]);}
+  const yn=[['si','Sí'],['no','No']], b=v=>v?'si':'no';
+  const rf=$('rFlor');if(rf)rf.innerHTML=pick('rule-flor',b(RULES.flor),yn);
+  const rc=$('rCflor');if(rc){rc.innerHTML=pick('rule-contraflor',b(RULES.contraflor),yn);rc.closest('.joinrow').hidden=!RULES.flor;}
+  const re=$('rEnv');if(re)re.innerHTML=pick('rule-envidoRep',b(RULES.envidoRep),[['si','Envido-envido y real-real'],['no','Uno de cada']]);
   const p=$('plyBtns');if(p)p.innerHTML=[2,4,6].map(v=>`<button class="btn sm ${v===PLAYERS?'yes':'ghost'}" data-act="ply:${v}" aria-pressed="${v===PLAYERS}">${v}</button>`).join('');
 }
 function push(){ if(mesas)mesas.publicar(G,G.phase==='over'); }
@@ -566,14 +593,18 @@ document.addEventListener('click',e=>{
   const [a,arg]=b.dataset.act.split(':');
   if(a==='local')return startLocal();
   if(a==='tgt'){TARGET=+arg;try{localStorage.setItem('truco.puntos',String(TARGET));}catch(e){}renderLobby();return;}
-  if(a==='pico'){PICO=arg==='si';try{localStorage.setItem('truco.pico',PICO?'si':'no');}catch(e){}renderLobby();return;}
+  if(a==='pico'){PICO=arg;try{localStorage.setItem('truco.pico',PICO);}catch(e){}renderLobby();return;}
+  if(a.startsWith('rule-')){RULES[a.slice(5)]=arg==='si';try{localStorage.setItem('truco.reglas',JSON.stringify(RULES));}catch(e){}renderLobby();return;}
+  if(a==='opts'){openOpts();return;}
+  if(a==='unopts'){closeOpts();return;}
+  if(a.startsWith('pref-')){const k=a.slice(5);PREF[k]=arg==='si'?true:arg==='no'?false:arg;savePref();renderOpts();if(G)render();return;}
   if(a==='ply'){PLAYERS=+arg;try{localStorage.setItem('truco.jugadores',String(PLAYERS));}catch(e){}renderLobby();return;}
   if(a==='leave')return toLobby();
   if(a==='snd'){SOUND_ON=!SOUND_ON;try{localStorage.setItem('truco.sonido',SOUND_ON?'si':'no');}catch(e){}render();return;}
   if(!G)return;
   if(a==='zoom'){openZoom();return;}
   if(a==='unzoom'){closeZoom();return;}
-  if(a==='new'){if(MODE==='local'||HOST){newGame(G.target,G.n,G.cpu,G.picoOn);step();}return;}
+  if(a==='new'){if(MODE==='local'||HOST){newGame(G.target,G.n,G.cpu,G.picoRule,G.rules);step();}return;}
   if(a==='deal'){if(G.phase==='handover'&&dealer()===ME){if(G.duelNext)startDuel(G.duelIdx+1);else dealHand();step();}return;}
   if(G.phase!=='play'||actor()!==ME)return;
   if(a==='play'){if(!G.pending&&G.turn===ME)play(ME,+arg);}
@@ -583,15 +614,47 @@ document.addEventListener('click',e=>{
   else if(a==='nq')noQuiero(ME);
   else if(a==='mazo')mazo(ME);
   else if(a==='flok')florOk(ME);
-  else if(a==='cflor')contraFlor(ME);
-  else if(a==='cfe')conFlorEnvido(ME);
+  else if(a==='cflor'&&RULE().contraflor)contraFlor(ME);
+  else if(a==='cfe'&&RULE().contraflor)conFlorEnvido(ME);
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeZoom();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeZoom();closeOpts();}});
 function openZoom(){
   let z=$('zoom');
   if(!z){z=document.createElement('div');z.id='zoom';z.setAttribute('role','dialog');z.setAttribute('aria-modal','true');z.setAttribute('data-act','unzoom');document.body.appendChild(z);}
   z.innerHTML=`<div class="zbox">${cardHTML(G.muestra,{cls:'zc'})}<p>Muestra: ${cname(G.muestra)}</p><button type="button" class="btn yes" data-act="unzoom">Cerrar</button></div>`;
   z.hidden=false; z.querySelector('button').focus();
+}
+function openOpts(){
+  let z=$('opts');
+  if(!z){z=document.createElement('div');z.id='opts';z.setAttribute('role','dialog');z.setAttribute('aria-modal','true');z.setAttribute('aria-labelledby','optsT');
+    z.addEventListener('click',e=>{if(e.target===z)closeOpts();});
+    z.addEventListener('input',e=>{if(e.target.id==='optVol'){PREF.vol=+e.target.value;$('optVolV').textContent=PREF.vol+' %';savePref();}});
+    document.body.appendChild(z);}
+  renderOpts(); z.hidden=false; const f=z.querySelector('button,input'); if(f)f.focus();
+}
+function closeOpts(){const z=$('opts');if(z&&!z.hidden){z.hidden=true;}}
+function renderOpts(){
+  const z=$('opts'); if(!z)return;
+  const pick=(k,opts)=>`<span class="btns">${opts.map(([v,l])=>{const on=String(PREF[k])===String(v==='si'?true:v==='no'?false:v);return `<button type="button" class="btn sm ${on?'yes':'ghost'}" data-act="pref-${k}:${v}" aria-pressed="${on}">${l}</button>`;}).join('')}</span>`;
+  const R=RULE(), rl=[
+    `${G?G.n:PLAYERS} jugadores, a ${G?TGT():TARGET} puntos`,
+    (G?G.n:PLAYERS)===6?`Pico a pico: ${{no:'no',ambos:'con los dos en malas',alguno:'con alguno en malas'}[G?G.picoRule:PICO]}`:null,
+    R.flor?(R.contraflor?'Con flor y contraflor':'Con flor, sin contraflor'):'Sin flor',
+    R.envidoRep?'Envido-envido y real-real':'Un envido y un real envido como máximo'].filter(Boolean);
+  z.innerHTML=`<div class="obox">
+    <div class="ohead"><h2 id="optsT">Opciones</h2><button type="button" class="btn ghost sm" data-act="unopts">Cerrar</button></div>
+    <section><h3>Sonido</h3>
+      <label class="orow" for="optVol"><span>Volumen de los cantos</span><span class="vol"><input id="optVol" type="range" min="0" max="100" step="5" value="${PREF.vol}"><b id="optVolV">${PREF.vol} %</b></span></label></section>
+    <section><h3>Juego</h3>
+      <div class="orow"><span>Velocidad de la compu</span>${pick('cpu',[['lenta','Lenta'],['normal','Normal'],['rapida','Rápida']])}</div>
+      <div class="orow"><span>Repartir solo al terminar la mano</span>${pick('auto',[['si','Sí'],['no','No']])}</div>
+      <div class="orow"><span>Animaciones</span>${pick('anim',[['si','Sí'],['no','No']])}</div></section>
+    <section><h3>Vista</h3>
+      <div class="orow"><span>Tamaño de las cartas</span>${pick('size',[['chica','Chicas'],['normal','Normales'],['grande','Grandes']])}</div>
+      <div class="orow"><span>Pizarrón</span>${pick('board',[['full','Completo'],['score','Solo los puntos']])}</div></section>
+    <section><h3>Reglas de esta mesa</h3><ul class="rlist">${rl.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="note">Se eligen antes de empezar, en "Reglas de la mesa".</p></section>
+  </div>`;
 }
 function closeZoom(){const z=$('zoom');if(z&&!z.hidden){z.hidden=true;}}
 // Configuración según cómo se entró desde el menú (window.URUGAMES): en multijugador va directo a la parte en línea
@@ -600,8 +663,8 @@ function closeZoom(){const z=$('zoom');if(z&&!z.hidden){z.hidden=true;}}
   const solo=document.querySelector('#lobby .tile.mesa'), online=$('onlineTile');
   if(URU_MULTI){
     // las opciones de jugadores y puntos pasan arriba del panel en línea, que sigue usándolas
-    ['plyBtns','picoRow','tgtBtns'].forEach(id=>{const el=$(id);const row=el&&(el.closest('.joinrow')||el);if(row&&online)online.insertBefore(row,$('online'));});
+    ['plyBtns','picoRow','tgtBtns','reglasMesa'].forEach(id=>{const el=$(id);const row=el&&(el.closest('.joinrow')||el);if(row&&online)online.insertBefore(row,$('online'));});
     if(solo)solo.hidden=true;
   }else if(online)online.hidden=true;
 })();
-show('lobby'); renderLobby(); initOnline();
+applyPref(); show('lobby'); renderLobby(); initOnline();

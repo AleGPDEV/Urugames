@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Gochi+Hand&display=swap">
   <link rel="stylesheet" href="../../css/lobby.css?v=20261030b">
   <link rel="stylesheet" href="../../css/juego.css?v=20261030b">
-  <link rel="stylesheet" href="truco.css?v=20261030c">
+  <link rel="stylesheet" href="truco.css?v=20261030d">
 </head>
 <body data-juego="truco">
 <div class="app">
@@ -26,6 +26,11 @@
       <div class="joinrow" role="group" aria-label="Jugadores"><span class="note">Jugadores</span><span id="plyBtns" class="btns"></span></div>
       <div class="joinrow" role="group" aria-label="Pico a pico" id="picoRow" hidden><span class="note">Pico a pico</span><span id="picoBtns" class="btns"></span></div>
       <div class="joinrow" role="group" aria-label="Puntos de la partida"><span class="note">Partida a</span><span id="tgtBtns" class="btns"></span></div>
+      <details class="reglas-mesa" id="reglasMesa"><summary>Reglas de la mesa</summary>
+        <div class="joinrow" role="group" aria-label="Flor"><span class="note">Flor</span><span id="rFlor" class="btns"></span></div>
+        <div class="joinrow" role="group" aria-label="Contraflor"><span class="note">Contraflor y con flor envido</span><span id="rCflor" class="btns"></span></div>
+        <div class="joinrow" role="group" aria-label="Envidos"><span class="note">Envidos</span><span id="rEnv" class="btns"></span></div>
+      </details>
       <div class="btns"><button class="btn yes" data-act="local">Jugar contra la máquina</button></div>
     </div>
     <div class="tile pizarra" id="onlineTile">
@@ -64,6 +69,6 @@
   <script src="../../js/firebase-config.js?v=20261030b"></script>
   <script src="../../js/online.js?v=20261030b"></script>
   <script src="../../js/mesas.js?v=20261030b"></script>
-  <script src="truco.js?v=20261030c"></script>
+  <script src="truco.js?v=20261030d"></script>
 </body>
 </html>
