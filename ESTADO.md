@@ -113,10 +113,31 @@ Una plataforma de juegos de cartas clásicos con baraja española, todos accesib
   - Las señas entre compañeros no existen (se ven las cartas del compañero).
   - Faltan audios para "Está bien" y "Son buenas".
 
+### Escoba de 15 (`juegos/escoba/`) · jugable
+- Archivos: `index.html`, `escoba.css` y `escoba.js`. Usa `img/baraja.jpg` como los demás juegos.
+- Vos contra la compu, partida a 15 puntos. Mazo de 40 cartas (sin 8 ni 9): la sota vale 8, el caballo 9 y el rey 10. Las figuras muestran "vale 8/9/10" en la carta.
+- Reglas implementadas:
+  - 4 cartas en la mesa y 3 a cada uno. Si la mesa inicial suma 15 (o 30), el que reparte se la lleva y hace una escoba (o dos).
+  - Se levanta con una carta de la mano más cartas de la mesa que sumen 15. Dejar la mesa vacía es escoba.
+  - Se vuelve a repartir de a 3 hasta agotar el mazo. Lo que queda en la mesa es para el último que levantó.
+  - Puntos por mano: cada escoba, más cartas, más oros, más sietes y el 7 de oros (1 cada uno; empate no suma). Gana el primero que llega a 15 con más puntos que el otro.
+- Para jugar se toca una carta de la mano, después las de la mesa, y se aprieta **Llevar**; o **Tirar** para dejarla en la mesa. Debajo de la mesa se ve la suma de lo elegido.
+- Botón **Pista**: marca en verde la mejor levantada, o dice qué carta conviene tirar.
+- Las cartas que levanta la compu se marcan antes de llevárselas.
+- Planilla al final de cada mano con escobas, cartas, oros, sietes y 7 de oros.
+- Usa la dificultad del menú:
+  - Fácil: a veces no ve la levantada y tira cualquier carta, y si levanta elige al azar.
+  - Normal: elige la levantada que más le conviene, pero la mitad de las veces no cuida lo que deja en la mesa.
+  - Difícil: además tira siempre la carta que menos chances le da al jugador (sobre todo, que no pueda hacer escoba).
+- Desde Multijugador muestra el aviso de que el modo en línea no existe y se juega contra la compu.
+- **Resultado:** al terminar la partida emite `urugames:resultado` con `{ juego, resultado, puntaje, tiempo, jugadores }`, igual que Truco.
+- **Probado** con 34 partidas automáticas en dificultad Difícil, sin errores.
+- **Pendiente:** solo 2 jugadores (el menú lo indica así). Falta la variante de 3 o 4 jugadores y en parejas.
+
 ## Qué falta
 
 ### Juegos
-Chinchón, Escoba, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
+Chinchón, Brisca, Tute, Mus y Siete y medio son **páginas provisorias** que dicen "Próximamente" y tienen las reglas sin escribir.
 
 ### Fichas diarias (sin empezar)
 Es el núcleo de la idea competitiva. Pensado así:
@@ -139,7 +160,7 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 1. Definir el backend: usuarios, fichas diarias y ranking.
 2. Armar un módulo común en `js/` para consumir una ficha al entrar y reportar el resultado al salir, y conectarlo primero con Memoria.
 3. Programar los juegos que faltan, usando `img/baraja.jpg` y `window.URUGAMES`.
-   Para el ranking, Truco ya emite `urugames:resultado`; conviene que los demás juegos hagan lo mismo.
+   Para el ranking, Truco y Escoba ya emiten `urugames:resultado`; conviene que los demás juegos hagan lo mismo.
 4. Multijugador en línea.
 
 ## Historial de cambios
@@ -154,3 +175,4 @@ Estos elementos están en la pantalla pero todavía no hacen nada:
 | 29/10/2026 | Juego **Chancho va** completo (vs 3 rivales de la compu, con amagues y dificultad del menú), agregado a `js/juegos.js` y al README |
 | 29/10/2026 | Juego **Roba montón** completo (vs 1, 2 o 3 rivales de la compu, con animaciones y dificultad del menú), agregado a `js/juegos.js` y al README |
 | 29/10/2026 | Juego **Truco uruguayo** completo: 2, 4 o 6 jugadores, pico a pico, flor y contraflor, mesa en ronda, animaciones, reparto automático y audios de los cantos |
+| 29/10/2026 | Juego **Escoba de 15** completo (vos contra la compu, a 15 puntos, pista y dificultad del menú). En `js/juegos.js` pasa a 2 jugadores |
